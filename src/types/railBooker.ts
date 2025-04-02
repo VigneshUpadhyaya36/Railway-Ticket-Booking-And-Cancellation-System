@@ -1,32 +1,86 @@
 
-import { Tables } from '@/integrations/supabase/types';
+// Define our own types for the train booking system instead of using Tables
 
-// Train type based on the Supabase schema
-export type TrainData = Tables<'train'> & {
+// Raw data types from Supabase
+export type TrainData = {
+  train_id: string;
+  train_name: string;
+  train_number: string;
+  source: string;
+  destination: string;
+  departure_time: string;
+  arrival_time: string;
+  schedule: string;
+  total_seats: number;
+  available_seats: number;
+  created_at?: string;
   fares?: FareData[];
 };
 
-// Fare type based on the Supabase schema
-export type FareData = Tables<'fare'>;
+// Fare type
+export type FareData = {
+  fare_id: string;
+  train_id: string;
+  class: string;
+  fare_amount: number;
+  created_at?: string;
+};
 
-// Passenger type based on the Supabase schema
-export type PassengerData = Tables<'passenger'>;
+// Passenger type
+export type PassengerData = {
+  passenger_id: string;
+  name: string;
+  age: number;
+  gender: string;
+  contact: string;
+  created_at?: string;
+};
 
-// Booking type based on the Supabase schema
-export type BookingData = Tables<'booking'> & {
+// Booking type
+export type BookingData = {
+  pnr: string;
+  passenger_id: string;
+  train_id: string;
+  seat_no: string;
+  class: string;
+  fare_id: string;
+  booking_date: string;
+  payment_status: string;
+  booking_status: string;
+  created_at?: string;
   passenger?: PassengerData;
   train?: TrainData;
   fare?: FareData;
 };
 
-// Payment type based on the Supabase schema
-export type PaymentData = Tables<'payment'>;
+// Payment type
+export type PaymentData = {
+  payment_id: string;
+  pnr: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  status: string;
+  created_at?: string;
+};
 
-// Cancellation type based on the Supabase schema
-export type CancellationData = Tables<'cancellation'>;
+// Cancellation type
+export type CancellationData = {
+  cancel_id: string;
+  pnr: string;
+  refund_amount: number;
+  cancellation_date: string;
+  status: string;
+  created_at?: string;
+};
 
-// Admin type based on the Supabase schema
-export type AdminData = Tables<'admin'>;
+// Admin type
+export type AdminData = {
+  admin_id: string;
+  username: string;
+  password: string;
+  created_at?: string;
+};
 
 // Custom train type for UI rendering (matches existing TrainCard component)
 export type Train = {

@@ -33,7 +33,8 @@ export const getTrains = async (params?: {
     throw new Error(`Failed to fetch trains: ${error.message}`);
   }
   
-  return (data as TrainData[]).map(train => mapTrainDataToTrain(train));
+  // Type assertion to tell TypeScript we know the shape of the data
+  return (data as unknown as TrainData[]).map(train => mapTrainDataToTrain(train));
 };
 
 // Get a train by ID
@@ -54,7 +55,8 @@ export const getTrain = async (trainId: string): Promise<Train | null> => {
   
   if (!data) return null;
   
-  return mapTrainDataToTrain(data as TrainData);
+  // Type assertion to tell TypeScript we know the shape of the data
+  return mapTrainDataToTrain(data as unknown as TrainData);
 };
 
 // Get train fares
@@ -69,5 +71,6 @@ export const getTrainFares = async (trainId: string): Promise<FareData[]> => {
     throw new Error(`Failed to fetch fares: ${error.message}`);
   }
   
-  return data as FareData[];
+  // Type assertion to tell TypeScript we know the shape of the data
+  return data as unknown as FareData[];
 };
