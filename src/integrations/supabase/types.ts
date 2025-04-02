@@ -9,7 +9,262 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      admin: {
+        Row: {
+          admin_id: string
+          created_at: string
+          password: string
+          username: string
+        }
+        Insert: {
+          admin_id?: string
+          created_at?: string
+          password: string
+          username: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          password?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      booking: {
+        Row: {
+          booking_date: string
+          booking_status: string
+          class: string
+          created_at: string
+          fare_id: string
+          passenger_id: string
+          payment_status: string
+          pnr: string
+          seat_no: string
+          train_id: string
+        }
+        Insert: {
+          booking_date?: string
+          booking_status?: string
+          class: string
+          created_at?: string
+          fare_id: string
+          passenger_id: string
+          payment_status?: string
+          pnr?: string
+          seat_no: string
+          train_id: string
+        }
+        Update: {
+          booking_date?: string
+          booking_status?: string
+          class?: string
+          created_at?: string
+          fare_id?: string
+          passenger_id?: string
+          payment_status?: string
+          pnr?: string
+          seat_no?: string
+          train_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_fare_id_fkey"
+            columns: ["fare_id"]
+            isOneToOne: false
+            referencedRelation: "fare"
+            referencedColumns: ["fare_id"]
+          },
+          {
+            foreignKeyName: "booking_passenger_id_fkey"
+            columns: ["passenger_id"]
+            isOneToOne: false
+            referencedRelation: "passenger"
+            referencedColumns: ["passenger_id"]
+          },
+          {
+            foreignKeyName: "booking_train_id_fkey"
+            columns: ["train_id"]
+            isOneToOne: false
+            referencedRelation: "train"
+            referencedColumns: ["train_id"]
+          },
+        ]
+      }
+      cancellation: {
+        Row: {
+          cancel_id: string
+          cancellation_date: string
+          created_at: string
+          pnr: string
+          refund_amount: number
+          status: string
+        }
+        Insert: {
+          cancel_id?: string
+          cancellation_date?: string
+          created_at?: string
+          pnr: string
+          refund_amount: number
+          status?: string
+        }
+        Update: {
+          cancel_id?: string
+          cancellation_date?: string
+          created_at?: string
+          pnr?: string
+          refund_amount?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellation_pnr_fkey"
+            columns: ["pnr"]
+            isOneToOne: false
+            referencedRelation: "booking"
+            referencedColumns: ["pnr"]
+          },
+        ]
+      }
+      fare: {
+        Row: {
+          class: string
+          created_at: string
+          fare_amount: number
+          fare_id: string
+          train_id: string
+        }
+        Insert: {
+          class: string
+          created_at?: string
+          fare_amount: number
+          fare_id?: string
+          train_id: string
+        }
+        Update: {
+          class?: string
+          created_at?: string
+          fare_amount?: number
+          fare_id?: string
+          train_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fare_train_id_fkey"
+            columns: ["train_id"]
+            isOneToOne: false
+            referencedRelation: "train"
+            referencedColumns: ["train_id"]
+          },
+        ]
+      }
+      passenger: {
+        Row: {
+          age: number
+          contact: string
+          created_at: string
+          gender: string
+          name: string
+          passenger_id: string
+        }
+        Insert: {
+          age: number
+          contact: string
+          created_at?: string
+          gender: string
+          name: string
+          passenger_id?: string
+        }
+        Update: {
+          age?: number
+          contact?: string
+          created_at?: string
+          gender?: string
+          name?: string
+          passenger_id?: string
+        }
+        Relationships: []
+      }
+      payment: {
+        Row: {
+          amount: number
+          created_at: string
+          payment_date: string
+          payment_id: string
+          payment_method: string
+          pnr: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          payment_date?: string
+          payment_id?: string
+          payment_method: string
+          pnr: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          payment_date?: string
+          payment_id?: string
+          payment_method?: string
+          pnr?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_pnr_fkey"
+            columns: ["pnr"]
+            isOneToOne: false
+            referencedRelation: "booking"
+            referencedColumns: ["pnr"]
+          },
+        ]
+      }
+      train: {
+        Row: {
+          arrival_time: string
+          available_seats: number
+          created_at: string
+          departure_time: string
+          destination: string
+          schedule: string
+          source: string
+          total_seats: number
+          train_id: string
+          train_name: string
+          train_number: string
+        }
+        Insert: {
+          arrival_time: string
+          available_seats: number
+          created_at?: string
+          departure_time: string
+          destination: string
+          schedule: string
+          source: string
+          total_seats: number
+          train_id?: string
+          train_name: string
+          train_number: string
+        }
+        Update: {
+          arrival_time?: string
+          available_seats?: number
+          created_at?: string
+          departure_time?: string
+          destination?: string
+          schedule?: string
+          source?: string
+          total_seats?: number
+          train_id?: string
+          train_name?: string
+          train_number?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
