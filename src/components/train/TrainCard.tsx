@@ -1,12 +1,11 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowRight, Clock, Calendar, Users } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, TrainFront } from "lucide-react";
 
-export type Train = {
+export interface Train {
   id: string;
   name: string;
   number: string;
@@ -14,80 +13,104 @@ export type Train = {
   destination: string;
   departureTime: string;
   arrivalTime: string;
-  duration: string;
+  date: string;
   price: number;
   availableSeats: number;
-  date: string;
-};
+  duration: string;
+}
 
 interface TrainCardProps {
   train: Train;
+  passengers: number;
 }
 
-const TrainCard: React.FC<TrainCardProps> = ({ train }) => {
+const TrainCard: React.FC<TrainCardProps> = ({ train, passengers = 1 }) => {
+  // Format time to ensure it's in HH:MM format
+  const formatTime = (time: string) => {
+    // If it's already in HH:MM format, return as is
+    if (/^\d{1,2}:\d{2}$/.test(time)) return time;
+    
+    try {
+      // Try to parse as a date string
+      const date = new Date(`2000-01-01T${time}`);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch {
+      // If parsing fails, return original
+      return time;
+    }
+  };
+
+  // Calculate if low seats warning should be shown
+  const isLowSeats = train.availableSeats <= 10;
+  
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200">
-      <CardContent className="p-0">
-        <div className="flex flex-col md:flex-row">
-          {/* Train Basic Info */}
-          <div className="p-6 flex-1 border-b md:border-b-0 md:border-r border-gray-100">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">{train.name}</h3>
-                <p className="text-sm text-gray-500">{train.number}</p>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow">
+      <div className="p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="flex items-center mb-1">
+              <h3 className="text-xl font-bold text-railway-800">{train.name}</h3>
+              <Badge className="ml-2 bg-blue-100 text-blue-800">{train.number}</Badge>
+            </div>
+            <div className="flex items-center text-gray-500 mb-4">
+              <Calendar className="h-4 w-4 mr-1" />
+              <span>{train.date}</span>
+            </div>
+          </div>
+          
+          <div className="md:text-right">
+            <div className="text-2xl font-bold text-railway-700">₹{train.price}</div>
+            <p className="text-sm text-gray-500">per passenger</p>
+          </div>
+        </div>
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div className="flex items-center w-full md:w-auto mb-4 md:mb-0">
+            <div className="text-center">
+              <p className="text-xl font-bold">{formatTime(train.departureTime)}</p>
+              <p className="text-sm text-gray-500">{train.origin}</p>
+            </div>
+            
+            <div className="flex-grow mx-4 flex flex-col items-center">
+              <div className="flex items-center w-full">
+                <div className="h-1 w-1 rounded-full bg-gray-400"></div>
+                <div className="flex-1 h-0.5 bg-gray-300"></div>
+                <div className="flex items-center justify-center bg-gray-100 rounded-full p-1 border border-gray-300">
+                  <Clock className="h-3 w-3 text-gray-600" />
+                </div>
+                <div className="flex-1 h-0.5 bg-gray-300"></div>
+                <div className="h-1 w-1 rounded-full bg-gray-400"></div>
               </div>
-              <Badge variant="outline" className="bg-railway-50 text-railway-700 border-railway-200">
+              <span className="text-sm text-gray-500 mt-1">{train.duration}</span>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-xl font-bold">{formatTime(train.arrivalTime)}</p>
+              <p className="text-sm text-gray-500">{train.destination}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4 w-full md:w-auto">
+            <div className="flex-grow md:flex-grow-0">
+              <Badge className={`${
+                isLowSeats 
+                  ? 'bg-red-100 text-red-800 border-red-200' 
+                  : 'bg-green-100 text-green-800 border-green-200'
+              } text-sm py-1 px-2 flex items-center justify-center md:justify-start`}>
+                <Users className="h-3 w-3 mr-1" />
                 {train.availableSeats} seats left
               </Badge>
             </div>
             
-            <div className="flex items-center text-sm mb-4">
-              <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-              <span>{train.date}</span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              {/* Departure */}
-              <div>
-                <p className="text-2xl font-bold">{train.departureTime}</p>
-                <p className="text-sm text-gray-500">{train.origin}</p>
-              </div>
-              
-              {/* Journey visualization */}
-              <div className="flex-1 mx-4 px-4 relative">
-                <div className="h-0.5 bg-gray-300 w-full absolute top-1/2"></div>
-                <div className="flex justify-between">
-                  <div className="w-3 h-3 rounded-full bg-railway-600 relative z-10"></div>
-                  <TrainFront className="w-5 h-5 text-railway-600 relative z-10 -mt-1" />
-                  <div className="w-3 h-3 rounded-full bg-railway-800 relative z-10"></div>
-                </div>
-                <p className="text-xs text-center mt-2 text-gray-500 flex items-center justify-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {train.duration}
-                </p>
-              </div>
-              
-              {/* Arrival */}
-              <div className="text-right">
-                <p className="text-2xl font-bold">{train.arrivalTime}</p>
-                <p className="text-sm text-gray-500">{train.destination}</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Price and Book Button */}
-          <div className="p-6 flex flex-col justify-between bg-gray-50 md:w-56">
-            <div className="mb-4">
-              <p className="text-sm text-gray-500">Price per person</p>
-              <p className="text-2xl font-bold">₹{train.price}</p>
-            </div>
-            <Link to={`/booking/${train.id}`}>
-              <Button className="w-full bg-railway-600 hover:bg-railway-700">Book Now</Button>
+            <Link to={`/booking/${train.id}?passengers=${passengers}`} className="flex-shrink-0">
+              <Button className="bg-railway-600 hover:bg-railway-700">
+                Book Now <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </Link>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

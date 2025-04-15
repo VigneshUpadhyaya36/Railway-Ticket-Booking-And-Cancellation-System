@@ -176,27 +176,7 @@ export const createBooking = async (bookingData: {
     
     if (paymentError) throw paymentError;
     
-    // Step 5: Update available seats in the train
-    const { data: trainData, error: getTrainError } = await supabase
-      .from('train')
-      .select('available_seats')
-      .eq('train_id', bookingData.trainId)
-      .single();
-      
-    if (getTrainError) {
-      console.error('Error getting train data:', getTrainError);
-    } else {
-      const newAvailableSeats = Math.max(0, trainData.available_seats - passengerIds.length);
-      
-      const { error: updateSeatsError } = await supabase
-        .from('train')
-        .update({ available_seats: newAvailableSeats })
-        .eq('train_id', bookingData.trainId);
-      
-      if (updateSeatsError) {
-        console.error('Error updating seats:', updateSeatsError);
-      }
-    }
+    // No need to update train seats manually, the trigger will handle it
     
     return firstPnr;
   } catch (error: any) {
@@ -275,28 +255,7 @@ export const cancelBooking = async (pnr: string, amount: number): Promise<void> 
       
       if (cancellationError) throw cancellationError;
       
-      // Step 3: Update available seats in the train
-      const { data: trainData, error: getTrainError } = await supabase
-        .from('train')
-        .select('available_seats, total_seats')
-        .eq('train_id', bookingData.train_id)
-        .single();
-      
-      if (!getTrainError && trainData) {
-        const newAvailableSeats = Math.min(
-          trainData.total_seats, 
-          trainData.available_seats + 1
-        );
-        
-        const { error: updateSeatsError } = await supabase
-          .from('train')
-          .update({ available_seats: newAvailableSeats })
-          .eq('train_id', bookingData.train_id);
-        
-        if (updateSeatsError) {
-          console.error('Error updating seats:', updateSeatsError);
-        }
-      }
+      // No need to update train seats manually, the trigger will handle it
       
       toast.success('Booking cancelled successfully. Refund of ₹' + refundAmount.toFixed(2) + ' will be processed.');
     } else {

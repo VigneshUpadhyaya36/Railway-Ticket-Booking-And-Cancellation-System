@@ -92,13 +92,28 @@ const UserBookings = () => {
     setCancelAmount(amount);
   };
 
+  // Format time to ensure it's in HH:MM format
+  const formatTime = (time: string) => {
+    // If it's already in HH:MM format, return as is
+    if (/^\d{1,2}:\d{2}$/.test(time)) return time;
+    
+    try {
+      // Try to parse as a date string
+      const date = new Date(`2000-01-01T${time}`);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch {
+      // If parsing fails, return original
+      return time;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8 flex-grow">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">My Bookings</h1>
+        <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <h1 className="text-3xl font-bold mb-2 text-railway-800">My Bookings</h1>
           <p className="text-gray-600">Manage all your train tickets and reservations</p>
         </div>
         
@@ -110,20 +125,20 @@ const UserBookings = () => {
           <div className="text-center py-16 bg-white rounded-lg shadow">
             <h2 className="text-xl font-medium mb-3">No bookings found</h2>
             <p className="text-gray-600 mb-6">You haven't made any bookings yet.</p>
-            <Button asChild>
+            <Button asChild className="bg-railway-600 hover:bg-railway-700">
               <a href="/trains">Find Trains</a>
             </Button>
           </div>
         ) : (
           <div className="space-y-6">
             {bookings.map(booking => (
-              <Card key={booking.id} className="hover:shadow-md transition-shadow">
+              <Card key={booking.id} className="hover:shadow-md transition-shadow border-t-4 border-t-railway-600">
                 <CardContent className="p-0">
                   <div className="p-6 border-b border-gray-100">
                     <div className="flex flex-wrap items-start justify-between mb-4">
                       <div>
                         <div className="flex items-center">
-                          <h3 className="text-lg font-bold text-gray-900 mr-3">
+                          <h3 className="text-lg font-bold text-railway-800 mr-3">
                             {booking.trainName}
                           </h3>
                           {booking.status === "confirmed" ? (
@@ -151,11 +166,11 @@ const UserBookings = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">From</p>
-                        <p className="font-medium">{booking.origin} ({booking.departureTime})</p>
+                        <p className="font-medium">{booking.origin} ({formatTime(booking.departureTime)})</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">To</p>
-                        <p className="font-medium">{booking.destination} ({booking.arrivalTime})</p>
+                        <p className="font-medium">{booking.destination} ({formatTime(booking.arrivalTime)})</p>
                       </div>
                     </div>
                     
@@ -176,17 +191,17 @@ const UserBookings = () => {
                     <div className="flex flex-wrap items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-500">Total Amount</p>
-                        <p className="text-lg font-bold">₹{booking.totalAmount}</p>
+                        <p className="text-lg font-bold text-railway-700">₹{booking.totalAmount}</p>
                       </div>
                       
                       <div className="flex space-x-2 mt-4 md:mt-0">
                         {booking.status === "confirmed" && (
                           <>
-                            <Button size="sm" variant="outline" className="flex items-center">
+                            <Button size="sm" variant="outline" className="flex items-center border-railway-200 text-railway-600 hover:bg-railway-50">
                               <Download className="h-4 w-4 mr-1" />
                               Download E-Ticket
                             </Button>
-                            <Button size="sm" variant="outline" className="flex items-center">
+                            <Button size="sm" variant="outline" className="flex items-center border-railway-200 text-railway-600 hover:bg-railway-50">
                               <ExternalLink className="h-4 w-4 mr-1" />
                               View Details
                             </Button>
@@ -194,7 +209,7 @@ const UserBookings = () => {
                         )}
                         
                         {booking.status === "waitlisted" && (
-                          <Button size="sm" variant="outline" className="flex items-center">
+                          <Button size="sm" variant="outline" className="flex items-center border-railway-200 text-railway-600 hover:bg-railway-50">
                             <AlertCircle className="h-4 w-4 mr-1" />
                             Check Status
                           </Button>

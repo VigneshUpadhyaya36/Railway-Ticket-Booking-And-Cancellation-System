@@ -1,52 +1,58 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { CalendarIcon, Map, Train, Calendar as CalendarIcon2, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CalendarIcon, Search } from "lucide-react";
 
-interface SearchFormProps {
-  onSearch?: (search: { origin: string; destination: string; date: string }) => void;
+export interface SearchFormProps {
+  onSearch?: (searchData: { origin: string; destination: string; date: string; passengers: string }) => void;
   origin?: string;
   destination?: string;
   date?: string;
+  passengers?: string;
 }
 
-const SearchForm: React.FC<SearchFormProps> = ({ onSearch, origin = '', destination = '', date = '' }) => {
-  const navigate = useNavigate();
-  const [originSearch, setOriginSearch] = useState(origin);
-  const [destinationSearch, setDestinationSearch] = useState(destination);
-  const [dateSearch, setDateSearch] = useState<Date | undefined>(date ? new Date(date) : undefined);
+const SearchForm = ({
+  onSearch,
+  origin: initialOrigin = '',
+  destination: initialDestination = '',
+  date: initialDate = '',
+  passengers: initialPassengers = '1'
+}: SearchFormProps) => {
+  const [origin, setOrigin] = useState(initialOrigin);
+  const [destination, setDestination] = useState(initialDestination);
+  const [date, setDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
+  const [passengers, setPassengers] = useState(initialPassengers);
   const [availableStations, setAvailableStations] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch available stations from the database
   useEffect(() => {
-    async function fetchStations() {
+    const fetchStations = async () => {
       setIsLoading(true);
       try {
-        // Fetch distinct sources
+        // Get all unique source stations
         const { data: sourceData, error: sourceError } = await supabase
           .from('train')
           .select('source')
-          .limit(50);
+          .order('source');
         
         if (sourceError) throw sourceError;
         
-        // Fetch distinct destinations
+        // Get all unique destination stations
         const { data: destData, error: destError } = await supabase
           .from('train')
           .select('destination')
-          .limit(50);
-        
+          .order('destination');
+          
         if (destError) throw destError;
         
         // Combine and deduplicate stations
@@ -57,167 +63,136 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, origin = '', destinat
         setAvailableStations(allStations);
       } catch (error) {
         console.error('Error fetching stations:', error);
-        toast.error('Failed to load station data');
       } finally {
         setIsLoading(false);
       }
-    }
+    };
     
     fetchStations();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!originSearch) {
-      toast.error("Please select origin station");
-      return;
-    }
-    
-    if (!destinationSearch) {
-      toast.error("Please select destination station");
-      return;
-    }
-    
-    if (!dateSearch) {
-      toast.error("Please select travel date");
-      return;
-    }
-    
-    if (originSearch === destinationSearch) {
-      toast.error("Origin and destination cannot be the same");
-      return;
-    }
-    
-    const searchParams = {
-      origin: originSearch,
-      destination: destinationSearch,
-      date: format(dateSearch, 'yyyy-MM-dd')
-    };
-    
-    // Call onSearch if provided
     if (onSearch) {
-      onSearch(searchParams);
+      onSearch({
+        origin,
+        destination,
+        date,
+        passengers
+      });
     }
-    
-    // Navigate to the listing page with search params
-    navigate(`/trains?origin=${originSearch}&destination=${destinationSearch}&date=${format(dateSearch, 'yyyy-MM-dd')}`);
   };
 
+  const today = new Date().toISOString().split('T')[0];
+
   return (
-    <Card className="shadow-lg border-0">
-      <CardContent className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-10 gap-4">
-            <div className="md:col-span-3">
-              <div className="flex flex-col space-y-2">
-                <label htmlFor="origin" className="text-sm font-medium">
-                  <div className="flex items-center gap-2">
-                    <Map size={16} className="text-railway-600" />
-                    From
-                  </div>
-                </label>
-                <Select 
-                  value={originSearch} 
-                  onValueChange={setOriginSearch}
-                >
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Select origin station" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableStations.length > 0 ? (
-                      availableStations.map(station => (
-                        <SelectItem key={station} value={station}>{station}</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="loading" disabled>
-                        {isLoading ? 'Loading stations...' : 'No stations available'}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="md:col-span-3">
-              <div className="flex flex-col space-y-2">
-                <label htmlFor="destination" className="text-sm font-medium">
-                  <div className="flex items-center gap-2">
-                    <Map size={16} className="text-railway-600" />
-                    To
-                  </div>
-                </label>
-                <Select 
-                  value={destinationSearch} 
-                  onValueChange={setDestinationSearch}
-                >
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder="Select destination station" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableStations.length > 0 ? (
-                      availableStations.map(station => (
-                        <SelectItem key={station} value={station}>{station}</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="loading" disabled>
-                        {isLoading ? 'Loading stations...' : 'No stations available'}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="md:col-span-2">
-              <div className="flex flex-col space-y-2">
-                <label className="text-sm font-medium">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon2 size={16} className="text-railway-600" />
-                    Date
-                  </div>
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "h-12 justify-start text-left font-normal",
-                        !dateSearch && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateSearch ? format(dateSearch, "PPP") : <span>Select date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dateSearch}
-                      onSelect={setDateSearch}
-                      initialFocus
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            <div className="md:col-span-2">
-              <div className="flex flex-col space-y-2">
-                <label className="text-sm font-medium opacity-0">Search</label>
-                <Button type="submit" className="h-12 bg-railway-600 hover:bg-railway-700">
-                  <div className="flex items-center gap-2">
-                    <Search size={16} />
-                    Find Trains
-                  </div>
-                </Button>
-              </div>
+    <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Origin */}
+          <div>
+            <Label htmlFor="origin" className="block mb-2 text-railway-700">From</Label>
+            <div className="relative">
+              <Select
+                value={origin}
+                onValueChange={setOrigin}
+              >
+                <SelectTrigger className="border-2 border-gray-200 h-12 focus:border-railway-500 focus:ring-railway-500">
+                  <SelectValue placeholder="Select origin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {!isLoading && availableStations.length > 0 ? (
+                    availableStations.map(station => (
+                      <SelectItem key={station} value={station}>{station}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="loading" disabled>
+                      {isLoading ? 'Loading stations...' : 'No stations available'}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+          
+          {/* Destination */}
+          <div>
+            <Label htmlFor="destination" className="block mb-2 text-railway-700">To</Label>
+            <div className="relative">
+              <Select
+                value={destination}
+                onValueChange={setDestination}
+              >
+                <SelectTrigger className="border-2 border-gray-200 h-12 focus:border-railway-500 focus:ring-railway-500">
+                  <SelectValue placeholder="Select destination" />
+                </SelectTrigger>
+                <SelectContent>
+                  {!isLoading && availableStations.length > 0 ? (
+                    availableStations.map(station => (
+                      <SelectItem key={station} value={station}>{station}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="loading" disabled>
+                      {isLoading ? 'Loading stations...' : 'No stations available'}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Date */}
+          <div>
+            <Label htmlFor="date" className="block mb-2 text-railway-700">
+              Travel Date
+            </Label>
+            <div className="relative">
+              <Input
+                type="date"
+                id="date"
+                name="date"
+                min={today}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="border-2 border-gray-200 h-12 focus:border-railway-500 focus:ring-railway-500"
+                required
+              />
+              <CalendarIcon className="absolute right-3 top-3 h-6 w-6 text-gray-400" />
+            </div>
+          </div>
+          
+          {/* Passengers */}
+          <div>
+            <Label htmlFor="passengers" className="block mb-2 text-railway-700">
+              Passengers
+            </Label>
+            <Select
+              value={passengers}
+              onValueChange={setPassengers}
+            >
+              <SelectTrigger className="border-2 border-gray-200 h-12 focus:border-railway-500 focus:ring-railway-500">
+                <SelectValue placeholder="No. of passengers" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6].map(num => (
+                  <SelectItem key={num} value={num.toString()}>{num} Passenger{num > 1 ? 's' : ''}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            className="w-full md:w-auto bg-railway-600 hover:bg-railway-700 text-white h-12 px-8"
+          >
+            <Search className="mr-2 h-4 w-4" /> Find Trains
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };
 

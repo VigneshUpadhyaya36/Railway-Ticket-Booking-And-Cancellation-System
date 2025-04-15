@@ -28,7 +28,6 @@ const TrainListing = () => {
   // Show search tip when no origin/destination is provided
   useEffect(() => {
     if ((!origin || !destination) && showSearchTip) {
-      // Fixed typing error by using JSX directly instead of a function component
       toast(
         <div className="flex items-start">
           <AlertTriangle className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
@@ -57,8 +56,8 @@ const TrainListing = () => {
   }, [origin, destination, showSearchTip]);
 
   // Handle search form submissions
-  const handleSearch = (searchData: { origin: string; destination: string; date: string }) => {
-    navigate(`/trains?origin=${searchData.origin}&destination=${searchData.destination}&date=${searchData.date}`);
+  const handleSearch = (searchData: { origin: string; destination: string; date: string; passengers: string }) => {
+    navigate(`/trains?origin=${searchData.origin}&destination=${searchData.destination}&date=${searchData.date}&passengers=${searchData.passengers || '1'}`);
   };
 
   // Show title based on search params
@@ -84,23 +83,24 @@ const TrainListing = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
       <Navbar />
       
-      <div className="bg-gray-50 py-6">
+      <div className="bg-gradient-to-r from-railway-600 to-railway-700 py-8 text-white">
         <div className="container mx-auto px-4">
           <SearchForm 
             onSearch={handleSearch}
             origin={origin} 
             destination={destination} 
-            date={date} 
+            date={date}
+            passengers={passengers}
           />
         </div>
       </div>
       
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">{getPageTitle()}</h1>
+        <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <h1 className="text-2xl font-bold mb-2 text-railway-800">{getPageTitle()}</h1>
           <p className="text-gray-500">{date ? date : 'All dates'} · {passengers} Passenger(s)</p>
         </div>
         
@@ -120,7 +120,11 @@ const TrainListing = () => {
         ) : (
           <div className="space-y-6">
             {trains?.map((train: Train) => (
-              <TrainCard key={train.id} train={mapTrainToCardFormat(train)} />
+              <TrainCard 
+                key={train.id} 
+                train={mapTrainToCardFormat(train)} 
+                passengers={parseInt(passengers || '1')}
+              />
             ))}
           </div>
         )}

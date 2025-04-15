@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { Train } from '@/types/railBooker';
 import { createBooking } from '@/services/trainService';
@@ -27,7 +26,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('card');
-  const [fareClass, setFareClass] = useState('AC First Class');
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
@@ -87,6 +85,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
         contact: contactPhone
       }));
       
+      // Set standard fare class (removed the selection)
+      const fareClass = 'AC First Class';
+      
       // Create the booking
       const pnr = await createBooking({
         passengerData: formattedPassengers,
@@ -106,72 +107,34 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
     }
   };
 
-  // Calculate fare based on selected class
-  const getFareMultiplier = () => {
-    switch (fareClass) {
-      case 'AC First Class': return 1.0;
-      case 'AC 2 Tier': return 0.8;
-      case 'AC 3 Tier': return 0.6;
-      case 'Sleeper': return 0.4;
-      default: return 1.0;
-    }
-  };
-  
-  const calculateFare = () => {
-    // Check if the train has fares data
-    if (train.fares && train.fares.length > 0) {
-      // Try to find the fare for the selected class
-      const selectedFare = train.fares.find(fare => fare.class === fareClass);
-      if (selectedFare) {
-        return selectedFare.amount;
-      }
-    }
-    
-    // Fallback to calculate based on base price and multiplier
-    return Math.round(train.price * getFareMultiplier());
+  // Calculate base fare (simplified - no class selection anymore)
+  const calculateBaseFare = () => {
+    return train.price;
   };
   
   const calculateTotalAmount = () => {
-    return (calculateFare() * Number(passengers)) + 50; // Base fare + service fee
+    return (calculateBaseFare() * passengers) + 50; // Base fare × passengers + service fee
   };
 
   return (
-    <Card className="w-full max-w-4xl shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-2xl">Passenger Details</CardTitle>
+    <Card className="w-full max-w-4xl shadow-lg border-t-4 border-t-railway-600">
+      <CardHeader className="bg-gradient-to-r from-railway-50 to-white">
+        <CardTitle className="text-2xl text-railway-800">Passenger Details</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Class Selection */}
-          <div className="space-y-4">
-            <h3 className="font-medium">Select Travel Class</h3>
-            <Select 
-              value={fareClass} 
-              onValueChange={setFareClass}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AC First Class">AC First Class</SelectItem>
-                <SelectItem value="AC 2 Tier">AC 2 Tier</SelectItem>
-                <SelectItem value="AC 3 Tier">AC 3 Tier</SelectItem>
-                <SelectItem value="Sleeper">Sleeper</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Passenger details */}
-          {Array.from({ length: Number(passengers) }).map((_, index) => (
+          {Array.from({ length: passengers }).map((_, index) => (
             <div key={index} className="space-y-4 border-b pb-4 last:border-b-0">
-              <h3 className="font-medium">Passenger {index + 1}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <h3 className="font-medium text-railway-700">Passenger {index + 1}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor={`name-${index}`}>Full Name</Label>
                   <Input
                     id={`name-${index}`}
                     value={passengerDetails[index]?.name || ''}
                     onChange={(e) => updatePassenger(index, 'name', e.target.value)}
+                    className="border-gray-300 focus:border-railway-500 focus:ring-railway-500"
                     required
                   />
                 </div>
@@ -184,24 +147,30 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
                     max="120"
                     value={passengerDetails[index]?.age || ''}
                     onChange={(e) => updatePassenger(index, 'age', e.target.value)}
+                    className="border-gray-300 focus:border-railway-500 focus:ring-railway-500"
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Gender</Label>
-                  <Select 
+                  <RadioGroup
                     value={passengerDetails[index]?.gender || 'male'} 
                     onValueChange={(value) => updatePassenger(index, 'gender', value)}
+                    className="flex space-x-4"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="male" id={`male-${index}`} />
+                      <Label htmlFor={`male-${index}`} className="cursor-pointer">Male</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="female" id={`female-${index}`} />
+                      <Label htmlFor={`female-${index}`} className="cursor-pointer">Female</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="other" id={`other-${index}`} />
+                      <Label htmlFor={`other-${index}`} className="cursor-pointer">Other</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
               </div>
             </div>
@@ -209,7 +178,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
 
           {/* Contact Information */}
           <div className="space-y-4">
-            <h3 className="font-medium">Contact Information</h3>
+            <h3 className="font-medium text-railway-700">Contact Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
@@ -218,6 +187,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
+                  className="border-gray-300 focus:border-railway-500 focus:ring-railway-500"
                   required
                 />
               </div>
@@ -228,6 +198,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
                   type="tel"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
+                  className="border-gray-300 focus:border-railway-500 focus:ring-railway-500"
                   required
                 />
               </div>
@@ -236,21 +207,21 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
 
           {/* Payment Method */}
           <div className="space-y-4">
-            <h3 className="font-medium">Payment Method</h3>
+            <h3 className="font-medium text-railway-700">Payment Method</h3>
             <RadioGroup
               value={paymentMethod}
               onValueChange={setPaymentMethod}
               className="grid grid-cols-1 md:grid-cols-3 gap-4"
             >
-              <div className="flex items-center space-x-2 border rounded-md p-4">
+              <div className="flex items-center space-x-2 border rounded-md p-4 hover:bg-railway-50 cursor-pointer">
                 <RadioGroupItem value="card" id="card" />
                 <Label htmlFor="card" className="cursor-pointer">Credit Card</Label>
               </div>
-              <div className="flex items-center space-x-2 border rounded-md p-4">
+              <div className="flex items-center space-x-2 border rounded-md p-4 hover:bg-railway-50 cursor-pointer">
                 <RadioGroupItem value="upi" id="upi" />
                 <Label htmlFor="upi" className="cursor-pointer">UPI</Label>
               </div>
-              <div className="flex items-center space-x-2 border rounded-md p-4">
+              <div className="flex items-center space-x-2 border rounded-md p-4 hover:bg-railway-50 cursor-pointer">
                 <RadioGroupItem value="netbanking" id="netbanking" />
                 <Label htmlFor="netbanking" className="cursor-pointer">Net Banking</Label>
               </div>
@@ -258,19 +229,15 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
           </div>
 
           {/* Fare Summary */}
-          <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium">Fare Summary</h3>
-            <div className="flex justify-between">
-              <span>Class</span>
-              <span>{fareClass}</span>
-            </div>
+          <div className="space-y-4 bg-gradient-to-r from-railway-50 to-white p-4 rounded-lg">
+            <h3 className="font-medium text-railway-700">Fare Summary</h3>
             <div className="flex justify-between">
               <span>Base Fare per passenger</span>
-              <span>₹{calculateFare()}</span>
+              <span>₹{calculateBaseFare()}</span>
             </div>
             <div className="flex justify-between">
               <span>Total Base Fare ({passengers} passengers)</span>
-              <span>₹{calculateFare() * Number(passengers)}</span>
+              <span>₹{calculateBaseFare() * passengers}</span>
             </div>
             <div className="flex justify-between">
               <span>Service Fee</span>

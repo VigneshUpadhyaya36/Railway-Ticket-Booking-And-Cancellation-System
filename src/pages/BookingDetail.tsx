@@ -22,9 +22,24 @@ const BookingDetail = () => {
     enabled: !!trainId,
   });
 
+  // Format time to ensure it's in HH:MM format
+  const formatTime = (time: string) => {
+    // If it's already in HH:MM format, return as is
+    if (/^\d{1,2}:\d{2}$/.test(time)) return time;
+    
+    try {
+      // Try to parse as a date string
+      const date = new Date(`2000-01-01T${time}`);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch {
+      // If parsing fails, return original
+      return time;
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
         <Navbar />
         <div className="flex-grow flex justify-center items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-railway-600"></div>
@@ -36,14 +51,14 @@ const BookingDetail = () => {
 
   if (error || !train) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
         <Navbar />
         <div className="flex-grow container mx-auto px-4 py-12">
           <div className="bg-red-50 border border-red-200 text-red-800 p-6 rounded-md">
             <h3 className="font-bold text-lg mb-2">Error</h3>
             <p>Failed to load train details. Please try again later.</p>
             <Link to="/trains">
-              <Button className="mt-4">Return to Train Listing</Button>
+              <Button className="mt-4 bg-railway-600 hover:bg-railway-700">Return to Train Listing</Button>
             </Link>
           </div>
         </div>
@@ -53,7 +68,7 @@ const BookingDetail = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
       <Navbar />
       
       <main className="flex-grow container mx-auto px-4 py-8">
@@ -64,8 +79,8 @@ const BookingDetail = () => {
           </Link>
         </div>
         
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h1 className="text-2xl font-bold mb-4">{train.name}</h1>
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border-t-4 border-t-railway-600">
+          <h1 className="text-2xl font-bold mb-4 text-railway-800">{train.name}</h1>
           <div className="flex flex-col md:flex-row md:justify-between gap-4 border-b pb-4 mb-4">
             <div>
               <p className="text-sm text-gray-500">Train Number</p>
@@ -85,7 +100,7 @@ const BookingDetail = () => {
             <div className="space-y-1 mb-4 md:mb-0">
               <div className="flex items-center">
                 <div>
-                  <p className="text-2xl font-bold">{train.departureTime}</p>
+                  <p className="text-2xl font-bold">{formatTime(train.departureTime)}</p>
                   <p className="text-gray-500">{train.origin}</p>
                 </div>
                 <div className="mx-4 text-gray-400 flex items-center">
@@ -96,16 +111,16 @@ const BookingDetail = () => {
                   <div className="w-2 h-2 rounded-full bg-gray-400"></div>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{train.arrivalTime}</p>
+                  <p className="text-2xl font-bold">{formatTime(train.arrivalTime)}</p>
                   <p className="text-gray-500">{train.destination}</p>
                 </div>
               </div>
               <p className="text-sm text-gray-500">{train.duration || "Unknown"} journey</p>
             </div>
             
-            <div className="bg-gray-50 p-3 rounded-md">
+            <div className="bg-gradient-to-r from-railway-50 to-white p-3 rounded-md">
               <p className="text-sm text-gray-500">Price per person</p>
-              <p className="text-2xl font-bold">₹{train.price}</p>
+              <p className="text-2xl font-bold text-railway-700">₹{train.price}</p>
             </div>
           </div>
         </div>

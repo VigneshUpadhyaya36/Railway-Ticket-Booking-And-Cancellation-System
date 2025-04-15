@@ -1,3 +1,4 @@
+
 // This file contains the type definitions for the RailBooker application
 
 // Train data from database
@@ -85,7 +86,7 @@ export interface Train {
   price: number;
   availableSeats: number;
   totalSeats: number;
-  duration?: string; // Add duration property (optional)
+  duration?: string; // Duration property is now defined here
   fares?: {
     id: string;
     class: string;
