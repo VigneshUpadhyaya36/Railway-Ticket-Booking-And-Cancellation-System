@@ -85,7 +85,6 @@ export const createBooking = async (bookingData: {
     contact: string;
   }[];
   trainId: string;
-  fareId: string;
   fareClass: string;
   paymentMethod: string;
   totalAmount: number;
@@ -111,7 +110,29 @@ export const createBooking = async (bookingData: {
       passengerIds.push(passengerData.passenger_id);
     }
     
-    // Step 2: Create bookings for each passenger
+    // Step 2: Get the fare_id for the selected class
+    const { data: fareData, error: fareError } = await supabase
+      .from('fare')
+      .select('fare_id')
+      .eq('train_id', bookingData.trainId)
+      .eq('class', bookingData.fareClass)
+      .single();
+      
+    if (fareError) {
+      console.error('Error fetching fare:', fareError);
+      // If no exact match, use any fare for this train
+      const { data: anyFare, error: anyFareError } = await supabase
+        .from('fare')
+        .select('fare_id')
+        .eq('train_id', bookingData.trainId)
+        .limit(1)
+        .single();
+        
+      if (anyFareError) throw anyFareError;
+      fareData = anyFare;
+    }
+    
+    // Step 3: Create bookings for each passenger
     const bookings: string[] = [];
     let firstPnr = '';
     
@@ -124,7 +145,7 @@ export const createBooking = async (bookingData: {
         .insert({
           passenger_id: passengerIds[i],
           train_id: bookingData.trainId,
-          fare_id: bookingData.fareId,
+          fare_id: fareData.fare_id,
           class: bookingData.fareClass,
           seat_no: seatNo,
           booking_status: 'Confirmed'
@@ -138,7 +159,7 @@ export const createBooking = async (bookingData: {
       if (i === 0) firstPnr = bookingResult.pnr;
     }
     
-    // Step 3: Create payment record
+    // Step 4: Create payment record
     const { error: paymentError } = await supabase
       .from('payment')
       .insert({
@@ -233,10 +254,12 @@ export const addTrain = async (trainData: {
   departureTime: string;
   arrivalTime: string;
   date: string;
-  totalSeats: number;
-  fares: { class: string; price: number }[];
+  price: string;
+  availableSeats: string;
 }): Promise<void> => {
   try {
+    console.log('Adding train with data:', trainData);
+    
     // Step 1: Insert train data
     const { data: newTrain, error: trainError } = await supabase
       .from('train')
@@ -248,26 +271,42 @@ export const addTrain = async (trainData: {
         departure_time: trainData.departureTime,
         arrival_time: trainData.arrivalTime,
         schedule: trainData.date,
-        total_seats: trainData.totalSeats,
-        available_seats: trainData.totalSeats
+        total_seats: Number(trainData.availableSeats),
+        available_seats: Number(trainData.availableSeats)
       })
       .select('train_id')
       .single();
     
-    if (trainError) throw trainError;
+    if (trainError) {
+      console.error('Error adding train:', trainError);
+      throw trainError;
+    }
+    
+    console.log('Train added successfully:', newTrain);
     
     // Step 2: Insert fare data
-    const fareData = trainData.fares.map(fare => ({
+    const fareAmount = Number(trainData.price);
+    const fareClasses = [
+      { class: 'AC First Class', multiplier: 1.0 },
+      { class: 'AC 2 Tier', multiplier: 0.8 },
+      { class: 'AC 3 Tier', multiplier: 0.6 },
+      { class: 'Sleeper', multiplier: 0.4 }
+    ];
+    
+    const fareData = fareClasses.map(fare => ({
       train_id: newTrain.train_id,
       class: fare.class,
-      fare_amount: fare.price
+      fare_amount: Math.round(fareAmount * fare.multiplier)
     }));
     
     const { error: fareError } = await supabase
       .from('fare')
       .insert(fareData);
     
-    if (fareError) throw fareError;
+    if (fareError) {
+      console.error('Error adding fares:', fareError);
+      throw fareError;
+    }
     
     toast.success('Train added successfully');
   } catch (error: any) {

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from 'sonner';
+import { addTrain } from '@/services/trainService';
 
 interface TrainFormProps {
   onSubmit: (trainData: any) => void;
@@ -78,6 +79,10 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
     
     setIsLoading(true);
     try {
+      // Call the Supabase function to add the train
+      await addTrain(trainData);
+      
+      // Call the onSubmit function passed as prop
       await onSubmit(trainData);
       
       // Clear the form if it's a new train submission

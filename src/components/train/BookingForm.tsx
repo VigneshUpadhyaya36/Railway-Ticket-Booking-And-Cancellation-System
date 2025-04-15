@@ -27,6 +27,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('card');
+  const [fareClass, setFareClass] = useState('AC First Class');
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
@@ -37,18 +38,43 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
     setPassengerDetails(updatedPassengers);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Basic validation
-    const isValid = passengerDetails.every(p => 
+  const validateForm = () => {
+    // Check if all passenger details are filled
+    const validPassengers = passengerDetails.every(p => 
       p.name && p.age && parseInt(p.age.toString()) > 0 && p.gender
     );
     
-    if (!isValid || !contactEmail || !contactPhone) {
-      toast.error("Please fill in all passenger details.");
-      return;
+    if (!validPassengers) {
+      toast.error("Please fill in all passenger details");
+      return false;
     }
+    
+    // Check contact information
+    if (!contactEmail || !contactPhone) {
+      toast.error("Please provide contact information");
+      return false;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactEmail)) {
+      toast.error("Please enter a valid email address");
+      return false;
+    }
+    
+    // Validate phone format (simple check for now)
+    if (contactPhone.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
     
     setIsLoading(true);
     
@@ -65,10 +91,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
       const pnr = await createBooking({
         passengerData: formattedPassengers,
         trainId: train.id,
-        fareId: '', // This would be set properly in a real application
-        fareClass: 'AC First Class', // Default class for now
+        fareClass: fareClass,
         paymentMethod: paymentMethod,
-        totalAmount: train.price * Number(passengers) + 50
+        totalAmount: calculateTotalAmount()
       });
       
       toast.success("Booking successful! Your tickets have been reserved.");
@@ -81,6 +106,25 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
     }
   };
 
+  // Calculate fare based on selected class
+  const getFareMultiplier = () => {
+    switch (fareClass) {
+      case 'AC First Class': return 1.0;
+      case 'AC 2 Tier': return 0.8;
+      case 'AC 3 Tier': return 0.6;
+      case 'Sleeper': return 0.4;
+      default: return 1.0;
+    }
+  };
+  
+  const calculateFare = () => {
+    return Math.round(train.price * getFareMultiplier());
+  };
+  
+  const calculateTotalAmount = () => {
+    return (calculateFare() * Number(passengers)) + 50; // Base fare + service fee
+  };
+
   return (
     <Card className="w-full max-w-4xl shadow-lg">
       <CardHeader>
@@ -88,6 +132,25 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Class Selection */}
+          <div className="space-y-4">
+            <h3 className="font-medium">Select Travel Class</h3>
+            <Select 
+              value={fareClass} 
+              onValueChange={setFareClass}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AC First Class">AC First Class</SelectItem>
+                <SelectItem value="AC 2 Tier">AC 2 Tier</SelectItem>
+                <SelectItem value="AC 3 Tier">AC 3 Tier</SelectItem>
+                <SelectItem value="Sleeper">Sleeper</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Passenger details */}
           {Array.from({ length: Number(passengers) }).map((_, index) => (
             <div key={index} className="space-y-4 border-b pb-4 last:border-b-0">
@@ -188,8 +251,16 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
           <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
             <h3 className="font-medium">Fare Summary</h3>
             <div className="flex justify-between">
-              <span>Base Fare ({passengers} passengers)</span>
-              <span>₹{train.price * Number(passengers)}</span>
+              <span>Class</span>
+              <span>{fareClass}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Base Fare per passenger</span>
+              <span>₹{calculateFare()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Total Base Fare ({passengers} passengers)</span>
+              <span>₹{calculateFare() * Number(passengers)}</span>
             </div>
             <div className="flex justify-between">
               <span>Service Fee</span>
@@ -197,7 +268,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
             </div>
             <div className="flex justify-between font-bold pt-2 border-t">
               <span>Total Amount</span>
-              <span>₹{train.price * Number(passengers) + 50}</span>
+              <span>₹{calculateTotalAmount()}</span>
             </div>
           </div>
 
@@ -206,7 +277,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
             className="w-full bg-railway-600 hover:bg-railway-700"
             disabled={isLoading}
           >
-            {isLoading ? 'Processing...' : `Confirm & Pay ₹${train.price * Number(passengers) + 50}`}
+            {isLoading ? 'Processing...' : `Confirm & Pay ₹${calculateTotalAmount()}`}
           </Button>
         </form>
       </CardContent>
