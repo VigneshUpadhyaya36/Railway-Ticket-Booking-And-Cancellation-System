@@ -111,6 +111,9 @@ export const createBooking = async (bookingData: {
     }
     
     // Step 2: Get the fare_id for the selected class
+    // Using a different approach to avoid reassigning a const variable
+    let fareId: string;
+    
     const { data: fareData, error: fareError } = await supabase
       .from('fare')
       .select('fare_id')
@@ -129,7 +132,9 @@ export const createBooking = async (bookingData: {
         .single();
         
       if (anyFareError) throw anyFareError;
-      fareData = anyFare;
+      fareId = anyFare.fare_id;
+    } else {
+      fareId = fareData.fare_id;
     }
     
     // Step 3: Create bookings for each passenger
@@ -145,7 +150,7 @@ export const createBooking = async (bookingData: {
         .insert({
           passenger_id: passengerIds[i],
           train_id: bookingData.trainId,
-          fare_id: fareData.fare_id,
+          fare_id: fareId,
           class: bookingData.fareClass,
           seat_no: seatNo,
           booking_status: 'Confirmed'
