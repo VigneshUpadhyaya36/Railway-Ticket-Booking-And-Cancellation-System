@@ -27,7 +27,8 @@ const TrainListing = () => {
   // Show search tip when no origin/destination is provided
   useEffect(() => {
     if ((!origin || !destination) && showSearchTip) {
-      toast((t) => (
+      // Fixed typing error by using JSX directly instead of a function component
+      toast(
         <div className="flex items-start">
           <AlertTriangle className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
           <div>
@@ -39,17 +40,18 @@ const TrainListing = () => {
               className="text-sm text-railway-600 mt-2"
               onClick={() => {
                 setShowSearchTip(false);
-                toast.dismiss(t);
+                toast.dismiss();
               }}
             >
               Don't show again
             </button>
           </div>
-        </div>
-      ), {
-        duration: 8000,
-        id: 'search-tip',
-      });
+        </div>,
+        {
+          duration: 8000,
+          id: 'search-tip',
+        }
+      );
     }
   }, [origin, destination, showSearchTip]);
 
