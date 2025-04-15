@@ -45,6 +45,22 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
     }));
   };
 
+  // Helper function to format time to ensure HH:MM format
+  const formatTimeValue = (value: string): string => {
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (timeRegex.test(value)) return value;
+    
+    // Try to extract hours and minutes
+    const timeParts = value.split(':');
+    if (timeParts.length >= 2) {
+      const hours = parseInt(timeParts[0]).toString().padStart(2, '0');
+      const minutes = parseInt(timeParts[1]).toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    
+    return value;
+  };
+
   const validateForm = () => {
     const requiredFields = [
       'name', 'number', 'origin', 'destination', 
@@ -61,14 +77,27 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
     
     // Validate time format (HH:MM)
     const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(trainData.departureTime)) {
-      toast.error("Departure time should be in HH:MM format");
+    
+    // Format departure time if not in correct format
+    const formattedDepartureTime = formatTimeValue(trainData.departureTime);
+    if (!timeRegex.test(formattedDepartureTime)) {
+      toast.error("Departure time should be in HH:MM format (e.g. 08:30)");
       return false;
     }
-    if (!timeRegex.test(trainData.arrivalTime)) {
-      toast.error("Arrival time should be in HH:MM format");
+    
+    // Format arrival time if not in correct format
+    const formattedArrivalTime = formatTimeValue(trainData.arrivalTime);
+    if (!timeRegex.test(formattedArrivalTime)) {
+      toast.error("Arrival time should be in HH:MM format (e.g. 14:30)");
       return false;
     }
+    
+    // Update state with formatted times
+    setTrainData(prev => ({
+      ...prev,
+      departureTime: formattedDepartureTime,
+      arrivalTime: formattedArrivalTime
+    }));
     
     // Validate numeric fields
     if (isNaN(Number(trainData.price)) || Number(trainData.price) <= 0) {
@@ -94,11 +123,17 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
         // Update existing train
         await updateTrain({
           ...trainData,
+          departureTime: formatTimeValue(trainData.departureTime),
+          arrivalTime: formatTimeValue(trainData.arrivalTime),
           id: initialData.id
         });
       } else {
         // Add new train
-        await addTrain(trainData);
+        await addTrain({
+          ...trainData,
+          departureTime: formatTimeValue(trainData.departureTime),
+          arrivalTime: formatTimeValue(trainData.arrivalTime)
+        });
       }
       
       // Call the onSubmit function passed as prop
@@ -127,15 +162,15 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{initialData?.id ? 'Edit Train' : 'Add New Train'}</CardTitle>
+    <Card className="border-railway-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-railway-50 to-white">
+        <CardTitle className="text-railway-800">{initialData?.id ? 'Edit Train' : 'Add New Train'}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Train Name</Label>
+              <Label htmlFor="name" className="text-railway-700">Train Name</Label>
               <Input
                 id="name"
                 name="name"
@@ -143,10 +178,11 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 onChange={handleChange}
                 required
                 placeholder="e.g. Chennai Express"
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="number">Train Number</Label>
+              <Label htmlFor="number" className="text-railway-700">Train Number</Label>
               <Input
                 id="number"
                 name="number"
@@ -154,13 +190,14 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 onChange={handleChange}
                 required
                 placeholder="e.g. 12302"
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="origin">Origin</Label>
+              <Label htmlFor="origin" className="text-railway-700">Origin</Label>
               <Input
                 id="origin"
                 name="origin"
@@ -168,10 +205,11 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 onChange={handleChange}
                 required
                 placeholder="e.g. Delhi"
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="destination">Destination</Label>
+              <Label htmlFor="destination" className="text-railway-700">Destination</Label>
               <Input
                 id="destination"
                 name="destination"
@@ -179,13 +217,14 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 onChange={handleChange}
                 required
                 placeholder="e.g. Mumbai"
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="departureTime">Departure Time</Label>
+              <Label htmlFor="departureTime" className="text-railway-700">Departure Time</Label>
               <Input
                 id="departureTime"
                 name="departureTime"
@@ -193,10 +232,14 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 onChange={handleChange}
                 required
                 placeholder="HH:MM (e.g. 08:30)"
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
+              <p className="text-xs text-railway-500">
+                Format: HH:MM (24-hour clock)
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="arrivalTime">Arrival Time</Label>
+              <Label htmlFor="arrivalTime" className="text-railway-700">Arrival Time</Label>
               <Input
                 id="arrivalTime"
                 name="arrivalTime"
@@ -204,10 +247,14 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 onChange={handleChange}
                 required
                 placeholder="HH:MM (e.g. 22:15)"
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
+              <p className="text-xs text-railway-500">
+                Format: HH:MM (24-hour clock)
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date" className="text-railway-700">Date</Label>
               <Input
                 id="date"
                 name="date"
@@ -215,13 +262,14 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.date}
                 onChange={handleChange}
                 required
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Base Price (₹)</Label>
+              <Label htmlFor="price" className="text-railway-700">Base Price (₹)</Label>
               <Input
                 id="price"
                 name="price"
@@ -231,13 +279,14 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 onChange={handleChange}
                 required
                 placeholder="e.g. 1500"
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-railway-500">
                 Fare for AC First Class. Other classes will be calculated automatically.
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="availableSeats">Total Seats</Label>
+              <Label htmlFor="availableSeats" className="text-railway-700">Total Seats</Label>
               <Input
                 id="availableSeats"
                 name="availableSeats"
@@ -247,13 +296,14 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 onChange={handleChange}
                 required
                 placeholder="e.g. 120"
+                className="border-railway-200 focus:border-railway-500 focus:ring-railway-500"
               />
             </div>
           </div>
           
           <Button 
             type="submit" 
-            className="w-full bg-railway-600 hover:bg-railway-700"
+            className="w-full bg-railway-600 hover:bg-railway-700 transform transition-transform duration-200 hover:scale-105 active:scale-95"
             disabled={isLoading}
           >
             {isLoading 

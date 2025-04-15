@@ -74,6 +74,12 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
     
     if (!validateForm()) return;
     
+    // Check if there are enough seats
+    if (train.availableSeats < passengers) {
+      toast.error(`Not enough seats available. Only ${train.availableSeats} seats left.`);
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -251,7 +257,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
 
           <Button 
             type="submit" 
-            className="w-full bg-railway-600 hover:bg-railway-700"
+            className="w-full bg-railway-600 hover:bg-railway-700 transform transition-transform duration-200 hover:scale-105 active:scale-95"
             disabled={isLoading}
           >
             {isLoading ? 'Processing...' : `Confirm & Pay ₹${calculateTotalAmount()}`}

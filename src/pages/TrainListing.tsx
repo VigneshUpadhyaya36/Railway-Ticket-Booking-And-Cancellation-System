@@ -20,7 +20,7 @@ const TrainListing = () => {
   const passengers = searchParams.get('passengers') || '1';
   const [showSearchTip, setShowSearchTip] = useState(true);
   
-  const { data: trains, isLoading, error } = useQuery({
+  const { data: trains, isLoading, error, refetch } = useQuery({
     queryKey: ['trains', origin, destination, date],
     queryFn: () => getTrains({ origin, destination, date }),
   });
@@ -83,7 +83,7 @@ const TrainListing = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-railway-50 to-white">
       <Navbar />
       
       <div className="bg-gradient-to-r from-railway-600 to-railway-700 py-8 text-white">
@@ -99,7 +99,7 @@ const TrainListing = () => {
       </div>
       
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+        <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border border-railway-100">
           <h1 className="text-2xl font-bold mb-2 text-railway-800">{getPageTitle()}</h1>
           <p className="text-gray-500">{date ? date : 'All dates'} · {passengers} Passenger(s)</p>
         </div>

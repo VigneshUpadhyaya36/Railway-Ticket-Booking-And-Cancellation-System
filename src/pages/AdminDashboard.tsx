@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -17,7 +17,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Train, BookingData, CancellationData } from '@/types/railBooker';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -39,6 +39,7 @@ import {
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
   
   const { data: adminData, isLoading: isAdminLoading } = useQuery({
@@ -72,6 +73,7 @@ const AdminDashboard = () => {
   const handleTrainUpdated = () => {
     queryClient.invalidateQueries({ queryKey: ['trains'] });
     setSelectedTrain(null);
+    setActiveTab("trains");
     toast.success("Train updated successfully");
   };
   
@@ -89,6 +91,24 @@ const AdminDashboard = () => {
   const handleEditTrain = (train: Train) => {
     setSelectedTrain(train);
     setActiveTab("edit-train");
+  };
+  
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['trains'] }),
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['cancellations'] }),
+        queryClient.invalidateQueries({ queryKey: ['adminData'] })
+      ]);
+      toast.success("Data refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast.error("Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
+    }
   };
   
   // Process booking data for charts
@@ -168,56 +188,73 @@ const AdminDashboard = () => {
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-            <p className="text-gray-500">Manage trains, view bookings, and monitor performance</p>
+            <h1 className="text-3xl font-bold mb-2 text-railway-800">Admin Dashboard</h1>
+            <p className="text-gray-600">Manage trains, view bookings, and monitor performance</p>
           </div>
           <Button 
-            className="flex items-center gap-2" 
-            onClick={() => queryClient.invalidateQueries()}
+            className="flex items-center gap-2 bg-railway-600 hover:bg-railway-700 transform transition-transform duration-200 hover:scale-105 active:scale-95" 
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
           >
-            <RefreshCw size={16} /> Refresh Data
+            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} /> 
+            {isRefreshing ? "Refreshing..." : "Refresh Data"}
           </Button>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-5 w-full max-w-4xl">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <FileText size={16} /> Overview
+          <TabsList className="grid grid-cols-5 w-full max-w-4xl bg-railway-100">
+            <TabsTrigger 
+              value="overview" 
+              className="data-[state=active]:bg-railway-600 data-[state=active]:text-white"
+            >
+              <FileText size={16} className="mr-2" /> Overview
             </TabsTrigger>
-            <TabsTrigger value="trains" className="flex items-center gap-2">
-              <TrainFrontIcon size={16} /> Trains
+            <TabsTrigger 
+              value="trains" 
+              className="data-[state=active]:bg-railway-600 data-[state=active]:text-white"
+            >
+              <TrainFrontIcon size={16} className="mr-2" /> Trains
             </TabsTrigger>
-            <TabsTrigger value="bookings" className="flex items-center gap-2">
-              <TicketIcon size={16} /> Bookings
+            <TabsTrigger 
+              value="bookings" 
+              className="data-[state=active]:bg-railway-600 data-[state=active]:text-white"
+            >
+              <TicketIcon size={16} className="mr-2" /> Bookings
             </TabsTrigger>
-            <TabsTrigger value="cancellations" className="flex items-center gap-2">
-              <XCircle size={16} /> Cancellations
+            <TabsTrigger 
+              value="cancellations" 
+              className="data-[state=active]:bg-railway-600 data-[state=active]:text-white"
+            >
+              <XCircle size={16} className="mr-2" /> Cancellations
             </TabsTrigger>
-            <TabsTrigger value="add-train" className="flex items-center gap-2">
-              <PlusCircle size={16} /> Add Train
+            <TabsTrigger 
+              value="add-train" 
+              className="data-[state=active]:bg-railway-600 data-[state=active]:text-white"
+            >
+              <PlusCircle size={16} className="mr-2" /> Add Train
             </TabsTrigger>
           </TabsList>
           
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <Card className="border-railway-200 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-2 bg-gradient-to-r from-railway-50 to-white">
+                  <CardTitle className="text-lg font-medium flex items-center gap-2 text-railway-800">
                     <DollarSign className="text-yellow-500" size={20} /> Total Revenue
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-railway-700">
-                    ₹{isAdminLoading ? '...' : adminData?.totalRevenue.toLocaleString()}
+                    ₹{isAdminLoading ? '...' : (adminData?.totalRevenue || 0).toLocaleString()}
                   </div>
                   <p className="text-sm text-gray-500 mt-1">All time earnings</p>
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <Card className="border-railway-200 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-2 bg-gradient-to-r from-railway-50 to-white">
+                  <CardTitle className="text-lg font-medium flex items-center gap-2 text-railway-800">
                     <TicketIcon className="text-blue-500" size={20} /> Active Bookings
                   </CardTitle>
                 </CardHeader>
@@ -229,9 +266,9 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <Card className="border-railway-200 shadow-md hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-2 bg-gradient-to-r from-railway-50 to-white">
+                  <CardTitle className="text-lg font-medium flex items-center gap-2 text-railway-800">
                     <UsersIcon className="text-green-500" size={20} /> Total Passengers
                   </CardTitle>
                 </CardHeader>
@@ -245,17 +282,17 @@ const AdminDashboard = () => {
             </div>
             
             {/* Revenue Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue Overview</CardTitle>
+            <Card className="border-railway-200 shadow-md">
+              <CardHeader className="bg-gradient-to-r from-railway-50 to-white">
+                <CardTitle className="text-railway-800">Revenue Overview</CardTitle>
                 <CardDescription>Monthly revenue trends</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="text-lg font-medium mb-2">Total Revenue</h3>
+                    <h3 className="text-lg font-medium mb-2 text-railway-800">Total Revenue</h3>
                     <p className="text-3xl font-bold text-railway-700">
-                      ₹{isAdminLoading ? '...' : adminData?.totalRevenue.toLocaleString()}
+                      ₹{isAdminLoading ? '...' : (adminData?.totalRevenue || 0).toLocaleString()}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">All time</p>
                     
@@ -274,7 +311,7 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium mb-2">Monthly Revenue</h3>
+                    <h3 className="text-lg font-medium mb-2 text-railway-800">Monthly Revenue</h3>
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={getMonthlyRevenueData()}>
                         <CartesianGrid strokeDasharray="3 3" />
@@ -292,9 +329,9 @@ const AdminDashboard = () => {
             {/* Booking Analytics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Booking Distribution */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Booking Distribution by Class</CardTitle>
+              <Card className="border-railway-200 shadow-md">
+                <CardHeader className="bg-gradient-to-r from-railway-50 to-white">
+                  <CardTitle className="text-railway-800">Booking Distribution by Class</CardTitle>
                   <CardDescription>Breakdown of bookings by train class</CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center">
@@ -324,9 +361,9 @@ const AdminDashboard = () => {
               </Card>
               
               {/* Occupancy Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Train Occupancy by Class</CardTitle>
+              <Card className="border-railway-200 shadow-md">
+                <CardHeader className="bg-gradient-to-r from-railway-50 to-white">
+                  <CardTitle className="text-railway-800">Train Occupancy by Class</CardTitle>
                   <CardDescription>Average seat occupancy percentage</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -347,15 +384,15 @@ const AdminDashboard = () => {
           
           {/* Trains Tab */}
           <TabsContent value="trains" className="space-y-6">
-            <Card>
-              <CardHeader>
+            <Card className="border-railway-200 shadow-md">
+              <CardHeader className="bg-gradient-to-r from-railway-50 to-white">
                 <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 text-railway-800">
                     <TrainFrontIcon size={20} /> Train Management
                   </span>
                   <Button 
                     onClick={() => setActiveTab("add-train")}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-railway-600 hover:bg-railway-700 transform transition-transform duration-200 hover:scale-105 active:scale-95"
                   >
                     <PlusCircle size={16} /> Add New Train
                   </Button>
@@ -371,35 +408,35 @@ const AdminDashboard = () => {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Train</TableHead>
-                          <TableHead>Route</TableHead>
-                          <TableHead>Schedule</TableHead>
-                          <TableHead>Seats</TableHead>
-                          <TableHead>Actions</TableHead>
+                        <TableRow className="bg-railway-50">
+                          <TableHead className="text-railway-800">Train</TableHead>
+                          <TableHead className="text-railway-800">Route</TableHead>
+                          <TableHead className="text-railway-800">Schedule</TableHead>
+                          <TableHead className="text-railway-800">Seats</TableHead>
+                          <TableHead className="text-railway-800">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {trains.map((train: Train) => (
-                          <TableRow key={train.id} className="hover:bg-gray-50">
+                          <TableRow key={train.id} className="hover:bg-railway-50">
                             <TableCell>
-                              <div className="font-medium">{train.name}</div>
+                              <div className="font-medium text-railway-800">{train.name}</div>
                               <div className="text-sm text-gray-500">{train.number}</div>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-blue-50">
+                                <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
                                   {train.origin}
                                 </Badge>
                                 {" to "}
-                                <Badge variant="outline" className="bg-green-50">
+                                <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
                                   {train.destination}
                                 </Badge>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
-                                <CalendarIcon size={14} className="text-gray-500" />
+                                <CalendarIcon size={14} className="text-railway-500" />
                                 {train.date}
                               </div>
                               <div className="text-sm text-gray-500 mt-1">
@@ -408,7 +445,7 @@ const AdminDashboard = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
-                                <Badge className={train.availableSeats < 10 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
+                                <Badge className={train.availableSeats < 10 ? "bg-red-100 text-red-800 border-red-200" : "bg-green-100 text-green-800 border-green-200"}>
                                   {train.availableSeats} available
                                 </Badge>
                               </div>
@@ -421,7 +458,7 @@ const AdminDashboard = () => {
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  className="flex items-center gap-1"
+                                  className="flex items-center gap-1 border-railway-200 hover:bg-railway-50 text-railway-700"
                                   onClick={() => handleEditTrain(train)}
                                 >
                                   <Edit size={14} /> Edit
@@ -431,23 +468,30 @@ const AdminDashboard = () => {
                                     <Button 
                                       variant="outline" 
                                       size="sm" 
-                                      className="flex items-center gap-1 text-red-500 hover:text-red-600"
+                                      className="flex items-center gap-1 text-red-500 hover:text-red-600 border-red-200 hover:bg-red-50"
                                     >
                                       <Trash2 size={14} /> Delete
                                     </Button>
                                   </DialogTrigger>
-                                  <DialogContent>
+                                  <DialogContent className="bg-white">
                                     <DialogHeader>
-                                      <DialogTitle>Confirm Deletion</DialogTitle>
+                                      <DialogTitle className="text-railway-800">Confirm Deletion</DialogTitle>
                                     </DialogHeader>
                                     <div className="py-4">
                                       Are you sure you want to delete {train.name} ({train.number})? This action cannot be undone.
                                     </div>
                                     <div className="flex justify-end gap-2 mt-4">
-                                      <Button variant="outline">Cancel</Button>
+                                      <DialogClose asChild>
+                                        <Button variant="outline">Cancel</Button>
+                                      </DialogClose>
                                       <Button 
                                         variant="destructive"
-                                        onClick={() => handleDeleteTrain(train.id)}
+                                        onClick={() => {
+                                          handleDeleteTrain(train.id);
+                                          document.querySelector('[data-state="open"] button[aria-label="Close"]')?.dispatchEvent(
+                                            new MouseEvent('click', { bubbles: true })
+                                          );
+                                        }}
                                       >
                                         Delete Train
                                       </Button>
@@ -465,7 +509,7 @@ const AdminDashboard = () => {
                   <div className="text-center py-8">
                     <p>No trains available</p>
                     <Button 
-                      className="mt-4" 
+                      className="mt-4 bg-railway-600 hover:bg-railway-700" 
                       onClick={() => setActiveTab("add-train")}
                     >
                       Add New Train
@@ -478,9 +522,9 @@ const AdminDashboard = () => {
           
           {/* Bookings Tab */}
           <TabsContent value="bookings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="border-railway-200 shadow-md">
+              <CardHeader className="bg-gradient-to-r from-railway-50 to-white">
+                <CardTitle className="flex items-center gap-2 text-railway-800">
                   <TicketIcon size={20} /> Booking Management
                 </CardTitle>
                 <CardDescription>Track all passenger bookings</CardDescription>
@@ -494,20 +538,20 @@ const AdminDashboard = () => {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>PNR</TableHead>
-                          <TableHead>Passenger</TableHead>
-                          <TableHead>Train</TableHead>
-                          <TableHead>Travel Class</TableHead>
-                          <TableHead>Booking Status</TableHead>
-                          <TableHead>Payment</TableHead>
+                        <TableRow className="bg-railway-50">
+                          <TableHead className="text-railway-800">PNR</TableHead>
+                          <TableHead className="text-railway-800">Passenger</TableHead>
+                          <TableHead className="text-railway-800">Train</TableHead>
+                          <TableHead className="text-railway-800">Travel Class</TableHead>
+                          <TableHead className="text-railway-800">Booking Status</TableHead>
+                          <TableHead className="text-railway-800">Payment</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {bookings.map((booking: BookingData) => (
-                          <TableRow key={booking.pnr} className="hover:bg-gray-50">
+                          <TableRow key={booking.pnr} className="hover:bg-railway-50">
                             <TableCell>
-                              <div className="font-medium">{booking.pnr}</div>
+                              <div className="font-medium text-railway-800">{booking.pnr}</div>
                               <div className="text-xs text-gray-500">
                                 {new Date(booking.booking_date).toLocaleDateString()}
                               </div>
@@ -525,17 +569,17 @@ const AdminDashboard = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="bg-blue-50">
+                              <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
                                 {booking.class}
                               </Badge>
                             </TableCell>
                             <TableCell>
                               {booking.booking_status === 'Confirmed' ? (
-                                <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                                <Badge className="bg-green-100 text-green-800 flex items-center gap-1 border-green-200">
                                   <CheckCircle2 size={12} /> Confirmed
                                 </Badge>
                               ) : (
-                                <Badge className="bg-red-100 text-red-800 flex items-center gap-1">
+                                <Badge className="bg-red-100 text-red-800 flex items-center gap-1 border-red-200">
                                   <XCircle size={12} /> Cancelled
                                 </Badge>
                               )}
@@ -544,11 +588,11 @@ const AdminDashboard = () => {
                               <div className="flex items-center gap-1">
                                 <CreditCard size={14} className="text-gray-500" />
                                 {booking.payment_status === 'Successful' ? (
-                                  <Badge className="bg-green-100 text-green-800">
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">
                                     Paid
                                   </Badge>
                                 ) : (
-                                  <Badge className="bg-yellow-100 text-yellow-800">
+                                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
                                     Pending
                                   </Badge>
                                 )}
@@ -570,9 +614,9 @@ const AdminDashboard = () => {
           
           {/* Cancellations Tab */}
           <TabsContent value="cancellations" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="border-railway-200 shadow-md">
+              <CardHeader className="bg-gradient-to-r from-railway-50 to-white">
+                <CardTitle className="flex items-center gap-2 text-railway-800">
                   <XCircle size={20} /> Cancellation Records
                 </CardTitle>
                 <CardDescription>Track all booking cancellations and refunds</CardDescription>
@@ -586,32 +630,32 @@ const AdminDashboard = () => {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>PNR</TableHead>
-                          <TableHead>Cancellation Date</TableHead>
-                          <TableHead>Refund Amount</TableHead>
-                          <TableHead>Status</TableHead>
+                        <TableRow className="bg-railway-50">
+                          <TableHead className="text-railway-800">PNR</TableHead>
+                          <TableHead className="text-railway-800">Cancellation Date</TableHead>
+                          <TableHead className="text-railway-800">Refund Amount</TableHead>
+                          <TableHead className="text-railway-800">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {cancellations.map((cancellation: CancellationData) => (
-                          <TableRow key={cancellation.cancel_id} className="hover:bg-gray-50">
+                          <TableRow key={cancellation.cancel_id} className="hover:bg-railway-50">
                             <TableCell>
-                              <div className="font-medium">{cancellation.pnr}</div>
+                              <div className="font-medium text-railway-800">{cancellation.pnr}</div>
                             </TableCell>
                             <TableCell>
                               {new Date(cancellation.cancellation_date).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
-                              <div className="font-medium">₹{cancellation.refund_amount}</div>
+                              <div className="font-medium text-railway-700">₹{cancellation.refund_amount}</div>
                             </TableCell>
                             <TableCell>
                               {cancellation.status === 'Processed' ? (
-                                <Badge className="bg-green-100 text-green-800">
+                                <Badge className="bg-green-100 text-green-800 border-green-200">
                                   Processed
                                 </Badge>
                               ) : (
-                                <Badge className="bg-yellow-100 text-yellow-800">
+                                <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
                                   Pending
                                 </Badge>
                               )}
@@ -640,8 +684,12 @@ const AdminDashboard = () => {
             {selectedTrain && (
               <>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold">Edit Train</h2>
-                  <Button variant="outline" onClick={() => setActiveTab("trains")}>
+                  <h2 className="text-2xl font-bold text-railway-800">Edit Train</h2>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setActiveTab("trains")}
+                    className="border-railway-200 hover:bg-railway-50 text-railway-700"
+                  >
                     Back to Trains
                   </Button>
                 </div>

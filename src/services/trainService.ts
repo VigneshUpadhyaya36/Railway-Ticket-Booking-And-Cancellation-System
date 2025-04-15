@@ -3,6 +3,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { TrainData, FareData, mapTrainDataToTrain, Train, BookingData, PaymentData, CancellationData } from '@/types/railBooker';
 import { toast } from 'sonner';
 
+// Format time to ensure HH:MM format
+const formatTimeString = (timeStr: string): string => {
+  if (!timeStr) return '';
+  
+  // If already in HH:MM format, return as is
+  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeStr)) {
+    return timeStr;
+  }
+  
+  // Try to extract hours and minutes
+  const timeParts = timeStr.split(':');
+  if (timeParts.length >= 2) {
+    const hours = parseInt(timeParts[0]).toString().padStart(2, '0');
+    const minutes = parseInt(timeParts[1]).toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+  
+  // If format is invalid, return original
+  return timeStr;
+};
+
 // Get all trains
 export const getTrains = async (params?: { 
   origin?: string, 
@@ -90,6 +111,19 @@ export const createBooking = async (bookingData: {
   totalAmount: number;
 }): Promise<string> => {
   try {
+    // Check if train has enough seats
+    const { data: trainData, error: trainError } = await supabase
+      .from('train')
+      .select('available_seats, total_seats')
+      .eq('train_id', bookingData.trainId)
+      .single();
+    
+    if (trainError) throw trainError;
+    
+    if (trainData.available_seats < bookingData.passengerData.length) {
+      throw new Error(`Not enough seats available. Only ${trainData.available_seats} seats left.`);
+    }
+    
     // Step 1: Insert passenger data and get IDs
     const passengerIds: string[] = [];
     
@@ -176,8 +210,6 @@ export const createBooking = async (bookingData: {
     
     if (paymentError) throw paymentError;
     
-    // No need to update train seats manually, the trigger will handle it
-    
     return firstPnr;
   } catch (error: any) {
     console.error('Error creating booking:', error);
@@ -255,8 +287,6 @@ export const cancelBooking = async (pnr: string, amount: number): Promise<void> 
       
       if (cancellationError) throw cancellationError;
       
-      // No need to update train seats manually, the trigger will handle it
-      
       toast.success('Booking cancelled successfully. Refund of ₹' + refundAmount.toFixed(2) + ' will be processed.');
     } else {
       toast.info('This booking has already been cancelled.');
@@ -277,10 +307,10 @@ export const getAdminData = async (): Promise<{ totalRevenue: number }> => {
   
   if (error) {
     console.error('Error fetching admin data:', error);
-    throw new Error(`Failed to fetch admin data: ${error.message}`);
+    return { totalRevenue: 0 }; // Default value if error
   }
   
-  return { totalRevenue: data.total_revenue || 0 };
+  return { totalRevenue: data?.total_revenue || 0 };
 };
 
 // Add a new train (admin only)
@@ -296,7 +326,15 @@ export const addTrain = async (trainData: {
   availableSeats: string;
 }): Promise<void> => {
   try {
-    console.log('Adding train with data:', trainData);
+    // Format time strings to ensure HH:MM format
+    const formattedDepartureTime = formatTimeString(trainData.departureTime);
+    const formattedArrivalTime = formatTimeString(trainData.arrivalTime);
+    
+    console.log('Adding train with data:', {
+      ...trainData,
+      departureTime: formattedDepartureTime,
+      arrivalTime: formattedArrivalTime
+    });
     
     // Step 1: Insert train data
     const { data: newTrain, error: trainError } = await supabase
@@ -306,8 +344,8 @@ export const addTrain = async (trainData: {
         train_number: trainData.number,
         source: trainData.origin,
         destination: trainData.destination,
-        departure_time: trainData.departureTime,
-        arrival_time: trainData.arrivalTime,
+        departure_time: formattedDepartureTime,
+        arrival_time: formattedArrivalTime,
         schedule: trainData.date,
         total_seats: Number(trainData.availableSeats),
         available_seats: Number(trainData.availableSeats)
@@ -368,7 +406,15 @@ export const updateTrain = async (trainData: {
   availableSeats: string;
 }): Promise<void> => {
   try {
-    console.log('Updating train with data:', trainData);
+    // Format time strings to ensure HH:MM format
+    const formattedDepartureTime = formatTimeString(trainData.departureTime);
+    const formattedArrivalTime = formatTimeString(trainData.arrivalTime);
+    
+    console.log('Updating train with data:', {
+      ...trainData,
+      departureTime: formattedDepartureTime,
+      arrivalTime: formattedArrivalTime
+    });
     
     // Step 1: Update train data
     const { error: trainError } = await supabase
@@ -378,8 +424,8 @@ export const updateTrain = async (trainData: {
         train_number: trainData.number,
         source: trainData.origin,
         destination: trainData.destination,
-        departure_time: trainData.departureTime,
-        arrival_time: trainData.arrivalTime,
+        departure_time: formattedDepartureTime,
+        arrival_time: formattedArrivalTime,
         schedule: trainData.date,
         total_seats: Number(trainData.availableSeats),
         available_seats: Number(trainData.availableSeats)

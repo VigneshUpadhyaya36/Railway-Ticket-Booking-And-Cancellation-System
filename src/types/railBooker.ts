@@ -86,7 +86,7 @@ export interface Train {
   price: number;
   availableSeats: number;
   totalSeats: number;
-  duration?: string; // Duration property is now defined here
+  duration?: string;
   fares?: {
     id: string;
     class: string;
@@ -94,13 +94,38 @@ export interface Train {
   }[];
 }
 
+// Helper function to format time to ensure HH:MM format
+const formatTimeString = (timeStr: string): string => {
+  if (!timeStr) return '';
+  
+  // If already in HH:MM format, return as is
+  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeStr)) {
+    return timeStr;
+  }
+  
+  // Try to extract hours and minutes
+  const timeParts = timeStr.split(':');
+  if (timeParts.length >= 2) {
+    const hours = parseInt(timeParts[0]).toString().padStart(2, '0');
+    const minutes = parseInt(timeParts[1]).toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+  
+  // If format is invalid, return original
+  return timeStr;
+};
+
 // Helper function to map database train data to frontend Train interface
 export const mapTrainDataToTrain = (trainData: TrainData): Train => {
+  // Format time strings to ensure HH:MM format
+  const departureTime = formatTimeString(trainData.departure_time);
+  const arrivalTime = formatTimeString(trainData.arrival_time);
+  
   // Calculate duration based on departure and arrival times
-  const calculateDuration = (departureTime: string, arrivalTime: string): string => {
+  const calculateDuration = (depTime: string, arrTime: string): string => {
     try {
-      const [depHours, depMinutes] = departureTime.split(':').map(Number);
-      const [arrHours, arrMinutes] = arrivalTime.split(':').map(Number);
+      const [depHours, depMinutes] = depTime.split(':').map(Number);
+      const [arrHours, arrMinutes] = arrTime.split(':').map(Number);
       
       let hourDiff = arrHours - depHours;
       let minuteDiff = arrMinutes - depMinutes;
@@ -126,13 +151,13 @@ export const mapTrainDataToTrain = (trainData: TrainData): Train => {
     number: trainData.train_number,
     origin: trainData.source,
     destination: trainData.destination,
-    departureTime: trainData.departure_time,
-    arrivalTime: trainData.arrival_time,
+    departureTime: departureTime,
+    arrivalTime: arrivalTime,
     date: trainData.schedule,
     price: 0, // Will be set from fares
     availableSeats: trainData.available_seats,
     totalSeats: trainData.total_seats,
-    duration: calculateDuration(trainData.departure_time, trainData.arrival_time)
+    duration: calculateDuration(departureTime, arrivalTime)
   };
   
   // Add fares if available
