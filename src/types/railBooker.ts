@@ -79,6 +79,7 @@ export type AdminData = {
   admin_id: string;
   username: string;
   password: string;
+  total_revenue: number;
   created_at?: string;
 };
 

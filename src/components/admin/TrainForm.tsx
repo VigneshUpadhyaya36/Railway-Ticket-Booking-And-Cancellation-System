@@ -23,6 +23,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
     price: initialData?.price || '',
     availableSeats: initialData?.availableSeats || '',
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -32,24 +33,74 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(trainData);
-    toast.success(initialData ? "Train updated successfully" : "New train added successfully");
+  const validateForm = () => {
+    const requiredFields = [
+      'name', 'number', 'origin', 'destination', 
+      'departureTime', 'arrivalTime', 'date', 
+      'price', 'availableSeats'
+    ];
     
-    if (!initialData) {
+    for (const field of requiredFields) {
+      if (!trainData[field]) {
+        toast.error(`Please enter ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+        return false;
+      }
+    }
+    
+    // Validate time format (HH:MM)
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(trainData.departureTime)) {
+      toast.error("Departure time should be in HH:MM format");
+      return false;
+    }
+    if (!timeRegex.test(trainData.arrivalTime)) {
+      toast.error("Arrival time should be in HH:MM format");
+      return false;
+    }
+    
+    // Validate numeric fields
+    if (isNaN(Number(trainData.price)) || Number(trainData.price) <= 0) {
+      toast.error("Price must be a positive number");
+      return false;
+    }
+    if (isNaN(Number(trainData.availableSeats)) || Number(trainData.availableSeats) <= 0) {
+      toast.error("Available seats must be a positive number");
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
+    try {
+      await onSubmit(trainData);
+      
       // Clear the form if it's a new train submission
-      setTrainData({
-        name: '',
-        number: '',
-        origin: '',
-        destination: '',
-        departureTime: '',
-        arrivalTime: '',
-        date: '',
-        price: '',
-        availableSeats: '',
-      });
+      if (!initialData) {
+        setTrainData({
+          name: '',
+          number: '',
+          origin: '',
+          destination: '',
+          departureTime: '',
+          arrivalTime: '',
+          date: '',
+          price: '',
+          availableSeats: '',
+        });
+      }
+      
+      toast.success(initialData ? "Train updated successfully" : "New train added successfully");
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast.error("An error occurred while saving the train");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -69,6 +120,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.name}
                 onChange={handleChange}
                 required
+                placeholder="e.g. Chennai Express"
               />
             </div>
             <div className="space-y-2">
@@ -79,6 +131,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.number}
                 onChange={handleChange}
                 required
+                placeholder="e.g. 12302"
               />
             </div>
           </div>
@@ -92,6 +145,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.origin}
                 onChange={handleChange}
                 required
+                placeholder="e.g. Delhi"
               />
             </div>
             <div className="space-y-2">
@@ -102,6 +156,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.destination}
                 onChange={handleChange}
                 required
+                placeholder="e.g. Mumbai"
               />
             </div>
           </div>
@@ -115,7 +170,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.departureTime}
                 onChange={handleChange}
                 required
-                placeholder="HH:MM"
+                placeholder="HH:MM (e.g. 08:30)"
               />
             </div>
             <div className="space-y-2">
@@ -126,7 +181,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.arrivalTime}
                 onChange={handleChange}
                 required
-                placeholder="HH:MM"
+                placeholder="HH:MM (e.g. 22:15)"
               />
             </div>
             <div className="space-y-2">
@@ -144,7 +199,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Price (₹)</Label>
+              <Label htmlFor="price">Base Price (₹)</Label>
               <Input
                 id="price"
                 name="price"
@@ -153,10 +208,14 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.price}
                 onChange={handleChange}
                 required
+                placeholder="e.g. 1500"
               />
+              <p className="text-xs text-gray-500">
+                Fare for AC First Class. Other classes will be calculated automatically.
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="availableSeats">Available Seats</Label>
+              <Label htmlFor="availableSeats">Total Seats</Label>
               <Input
                 id="availableSeats"
                 name="availableSeats"
@@ -165,12 +224,20 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
                 value={trainData.availableSeats}
                 onChange={handleChange}
                 required
+                placeholder="e.g. 120"
               />
             </div>
           </div>
           
-          <Button type="submit" className="w-full bg-railway-600 hover:bg-railway-700">
-            {initialData ? 'Update Train' : 'Add Train'}
+          <Button 
+            type="submit" 
+            className="w-full bg-railway-600 hover:bg-railway-700"
+            disabled={isLoading}
+          >
+            {isLoading 
+              ? 'Processing...' 
+              : initialData ? 'Update Train' : 'Add Train'
+            }
           </Button>
         </form>
       </CardContent>

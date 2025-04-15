@@ -1,129 +1,141 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrainFront, Users, Ticket, Plus, Edit, Trash } from "lucide-react";
+import { TrainFront, Users, Ticket, Plus, Edit, Trash, IndianRupee } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import TrainForm from "@/components/admin/TrainForm";
 import CustomerForm from "@/components/admin/CustomerForm";
 import { toast } from "sonner";
-
-// Mock data
-const mockTrains = [
-  {
-    id: "1",
-    name: "Rajdhani Express",
-    number: "12301",
-    origin: "New Delhi",
-    destination: "Mumbai",
-    departureTime: "16:55",
-    arrivalTime: "08:15",
-    date: "2023-08-15",
-    price: 1200,
-    availableSeats: 42,
-  },
-  {
-    id: "2",
-    name: "Shatabdi Express",
-    number: "12045",
-    origin: "New Delhi",
-    destination: "Mumbai",
-    departureTime: "06:15",
-    arrivalTime: "22:30",
-    date: "2023-08-15",
-    price: 850,
-    availableSeats: 120,
-  },
-];
-
-const mockCustomers = [
-  {
-    id: "C001",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+91 9876543210",
-    gender: "male",
-    address: "123 Main St, New Delhi",
-  },
-  {
-    id: "C002",
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    phone: "+91 8765432109",
-    gender: "female",
-    address: "456 Park Ave, Mumbai",
-  },
-];
-
-const mockBookings = [
-  {
-    id: "B001",
-    customer: "John Doe",
-    train: "Rajdhani Express (12301)",
-    date: "2023-08-15",
-    origin: "New Delhi",
-    destination: "Mumbai",
-    passengers: 1,
-    status: "Confirmed",
-    amount: 1250,
-  },
-  {
-    id: "B002",
-    customer: "Jane Smith",
-    train: "Shatabdi Express (12045)",
-    date: "2023-09-20",
-    origin: "Chennai",
-    destination: "Bangalore",
-    passengers: 2,
-    status: "Confirmed",
-    amount: 1700,
-  },
-  {
-    id: "B003",
-    customer: "John Doe",
-    train: "Duronto Express (12213)",
-    date: "2023-10-05",
-    origin: "Mumbai",
-    destination: "Kolkata",
-    passengers: 1,
-    status: "Waitlisted",
-    amount: 1450,
-  },
-];
+import { getTrains, getBookings, getAdminData, addTrain, cancelBooking } from '@/services/trainService';
+import { formatDistanceToNow } from 'date-fns';
 
 const AdminDashboard = () => {
-  const [trains, setTrains] = useState(mockTrains);
-  const [customers, setCustomers] = useState(mockCustomers);
-  const [bookings] = useState(mockBookings);
+  const [trains, setTrains] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [selectedTrain, setSelectedTrain] = useState<any>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [deleteTrainId, setDeleteTrainId] = useState<string | null>(null);
   const [deleteCustomerId, setDeleteCustomerId] = useState<string | null>(null);
   const [isTrainDialogOpen, setIsTrainDialogOpen] = useState(false);
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleAddTrain = (trainData: any) => {
-    const newTrain = {
-      id: Date.now().toString(),
-      ...trainData,
-    };
-    setTrains([...trains, newTrain]);
-    setIsTrainDialogOpen(false);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch trains
+      const trainsData = await getTrains();
+      setTrains(trainsData);
+      
+      // Fetch bookings
+      const bookingsData = await getBookings();
+      
+      // Transform booking data for UI
+      const transformedBookings = bookingsData.map(booking => {
+        const train = booking.train;
+        const passenger = booking.passenger;
+        
+        return {
+          id: booking.pnr,
+          customer: passenger?.name || 'Unknown',
+          train: `${train?.train_name || 'Unknown'} (${train?.train_number || 'N/A'})`,
+          date: train?.schedule ? new Date(train.schedule).toLocaleDateString() : 'N/A',
+          origin: train?.source || 'N/A',
+          destination: train?.destination || 'N/A',
+          passengers: 1, // Hard-coded for now
+          status: booking.booking_status,
+          amount: 1200, // Hard-coded for now, would come from payment
+          created_at: booking.created_at,
+        };
+      });
+      
+      setBookings(transformedBookings);
+      
+      // Get unique customers from bookings
+      const uniqueCustomers = Array.from(
+        new Set(bookingsData.map(b => b.passenger?.passenger_id))
+      )
+        .filter(Boolean)
+        .map(id => {
+          const booking = bookingsData.find(b => b.passenger?.passenger_id === id);
+          const passenger = booking?.passenger;
+          
+          return {
+            id: passenger?.passenger_id,
+            name: passenger?.name || 'Unknown',
+            email: 'customer@example.com', // Placeholder
+            phone: passenger?.contact || 'N/A',
+            gender: passenger?.gender || 'N/A',
+            address: 'India', // Placeholder
+          };
+        });
+      
+      setCustomers(uniqueCustomers);
+      
+      // Fetch admin data (total revenue)
+      const adminData = await getAdminData();
+      setTotalRevenue(adminData.totalRevenue);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Failed to load admin data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddTrain = async (trainData: any) => {
+    try {
+      await addTrain({
+        name: trainData.name,
+        number: trainData.number,
+        origin: trainData.origin,
+        destination: trainData.destination,
+        departureTime: trainData.departureTime,
+        arrivalTime: trainData.arrivalTime,
+        date: trainData.date,
+        totalSeats: parseInt(trainData.availableSeats),
+        fares: [
+          { class: 'AC First Class', price: parseInt(trainData.price) },
+          { class: 'AC 2 Tier', price: parseInt(trainData.price) * 0.8 },
+          { class: 'AC 3 Tier', price: parseInt(trainData.price) * 0.6 },
+          { class: 'Sleeper', price: parseInt(trainData.price) * 0.4 }
+        ]
+      });
+      
+      // Refresh trains data
+      const trainsData = await getTrains();
+      setTrains(trainsData);
+      
+      setIsTrainDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding train:", error);
+      toast.error("Failed to add train");
+    }
   };
 
   const handleEditTrain = (trainData: any) => {
+    // This would be replaced with an API call in a real app
     setTrains(trains.map(train => 
       train.id === selectedTrain.id ? { ...train, ...trainData } : train
     ));
     setSelectedTrain(null);
     setIsTrainDialogOpen(false);
+    toast.success("Train updated successfully");
   };
 
   const handleDeleteTrain = () => {
     if (deleteTrainId) {
+      // This would be replaced with an API call in a real app
       setTrains(trains.filter(train => train.id !== deleteTrainId));
       setDeleteTrainId(null);
       toast.success("Train deleted successfully");
@@ -131,29 +143,74 @@ const AdminDashboard = () => {
   };
 
   const handleAddCustomer = (customerData: any) => {
+    // This would be replaced with an API call in a real app
     const newCustomer = {
       id: `C${Date.now().toString().slice(-3)}`,
       ...customerData,
     };
     setCustomers([...customers, newCustomer]);
     setIsCustomerDialogOpen(false);
+    toast.success("Customer added successfully");
   };
 
   const handleEditCustomer = (customerData: any) => {
+    // This would be replaced with an API call in a real app
     setCustomers(customers.map(customer => 
       customer.id === selectedCustomer.id ? { ...customer, ...customerData } : customer
     ));
     setSelectedCustomer(null);
     setIsCustomerDialogOpen(false);
+    toast.success("Customer updated successfully");
   };
 
   const handleDeleteCustomer = () => {
     if (deleteCustomerId) {
+      // This would be replaced with an API call in a real app
       setCustomers(customers.filter(customer => customer.id !== deleteCustomerId));
       setDeleteCustomerId(null);
       toast.success("Customer deleted successfully");
     }
   };
+
+  const handleCancelBooking = async (pnr: string, amount: number) => {
+    try {
+      await cancelBooking(pnr, amount);
+      
+      // Update local state
+      setBookings(prevBookings => prevBookings.map(booking => 
+        booking.id === pnr 
+          ? { ...booking, status: 'Cancelled' } 
+          : booking
+      ));
+      
+      toast.success("Booking cancelled successfully");
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      toast.error("Failed to cancel booking");
+    }
+  };
+
+  // Format time for admin view
+  const formatTime = (timeString: string) => {
+    return timeString?.slice(0, 5) || 'N/A';
+  };
+
+  // Format revenue
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-railway-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -178,7 +235,7 @@ const AdminDashboard = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dashboard Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6 flex items-center">
               <div className="bg-railway-100 p-4 rounded-full mr-4">
@@ -211,6 +268,18 @@ const AdminDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Bookings</p>
                 <h3 className="text-3xl font-bold">{bookings.length}</h3>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6 flex items-center">
+              <div className="bg-railway-100 p-4 rounded-full mr-4">
+                <IndianRupee className="h-6 w-6 text-railway-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+                <h3 className="text-3xl font-bold">{formatCurrency(totalRevenue)}</h3>
               </div>
             </CardContent>
           </Card>
@@ -252,6 +321,7 @@ const AdminDashboard = () => {
                         <th className="pb-3 font-medium">Number</th>
                         <th className="pb-3 font-medium">Route</th>
                         <th className="pb-3 font-medium">Date</th>
+                        <th className="pb-3 font-medium">Time</th>
                         <th className="pb-3 font-medium">Price</th>
                         <th className="pb-3 font-medium">Seats</th>
                         <th className="pb-3 font-medium">Actions</th>
@@ -264,6 +334,7 @@ const AdminDashboard = () => {
                           <td className="py-4">{train.number}</td>
                           <td className="py-4">{train.origin} to {train.destination}</td>
                           <td className="py-4">{train.date}</td>
+                          <td className="py-4">{train.departureTime} - {train.arrivalTime}</td>
                           <td className="py-4">₹{train.price}</td>
                           <td className="py-4">{train.availableSeats}</td>
                           <td className="py-4">
@@ -446,9 +517,9 @@ const AdminDashboard = () => {
                         <th className="pb-3 font-medium">Train</th>
                         <th className="pb-3 font-medium">Date</th>
                         <th className="pb-3 font-medium">Route</th>
-                        <th className="pb-3 font-medium">Passengers</th>
                         <th className="pb-3 font-medium">Status</th>
                         <th className="pb-3 font-medium">Amount</th>
+                        <th className="pb-3 font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -459,17 +530,50 @@ const AdminDashboard = () => {
                           <td className="py-4">{booking.train}</td>
                           <td className="py-4">{booking.date}</td>
                           <td className="py-4">{booking.origin} to {booking.destination}</td>
-                          <td className="py-4">{booking.passengers}</td>
                           <td className="py-4">
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               booking.status === "Confirmed" 
                                 ? "bg-green-100 text-green-800" 
-                                : "bg-yellow-100 text-yellow-800"
+                                : booking.status === "Waitlisted"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
                             }`}>
                               {booking.status}
                             </span>
                           </td>
                           <td className="py-4">₹{booking.amount}</td>
+                          <td className="py-4">
+                            {booking.status !== "Cancelled" && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="border-red-200 text-red-600 hover:bg-red-50"
+                                  >
+                                    Cancel
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to cancel booking {booking.id}? The seat will be made available for other customers.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>No, Keep Booking</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleCancelBooking(booking.id, booking.amount)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Yes, Cancel Booking
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

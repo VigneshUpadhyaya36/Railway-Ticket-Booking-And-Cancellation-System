@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { Train } from './TrainCard';
+import { Train } from '@/types/railBooker';
+import { createBooking } from '@/services/trainService';
 
 interface BookingFormProps {
   train: Train;
@@ -26,6 +27,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('card');
+  const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
 
@@ -35,12 +37,48 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
     setPassengerDetails(updatedPassengers);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real application, this would connect to your backend API
-    // For now, just show a success toast and redirect
-    toast.success("Booking successful! Your tickets have been reserved.");
-    navigate('/bookings');
+    
+    // Basic validation
+    const isValid = passengerDetails.every(p => 
+      p.name && p.age && parseInt(p.age.toString()) > 0 && p.gender
+    );
+    
+    if (!isValid || !contactEmail || !contactPhone) {
+      toast.error("Please fill in all passenger details.");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Format passenger data
+      const formattedPassengers = passengerDetails.map(p => ({
+        name: p.name,
+        age: parseInt(p.age.toString()),
+        gender: p.gender,
+        contact: contactPhone
+      }));
+      
+      // Create the booking
+      const pnr = await createBooking({
+        passengerData: formattedPassengers,
+        trainId: train.id,
+        fareId: '', // This would be set properly in a real application
+        fareClass: 'AC First Class', // Default class for now
+        paymentMethod: paymentMethod,
+        totalAmount: train.price * Number(passengers) + 50
+      });
+      
+      toast.success("Booking successful! Your tickets have been reserved.");
+      navigate('/bookings');
+    } catch (error) {
+      console.error("Booking error:", error);
+      toast.error("There was an error processing your booking. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -163,8 +201,12 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
             </div>
           </div>
 
-          <Button type="submit" className="w-full bg-railway-600 hover:bg-railway-700">
-            Confirm & Pay ₹{train.price * Number(passengers) + 50}
+          <Button 
+            type="submit" 
+            className="w-full bg-railway-600 hover:bg-railway-700"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processing...' : `Confirm & Pay ₹${train.price * Number(passengers) + 50}`}
           </Button>
         </form>
       </CardContent>

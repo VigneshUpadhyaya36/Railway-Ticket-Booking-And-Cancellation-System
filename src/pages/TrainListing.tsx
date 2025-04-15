@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { getTrains } from '@/services/trainService';
@@ -8,6 +8,8 @@ import Footer from '@/components/layout/Footer';
 import SearchForm from '@/components/train/SearchForm';
 import TrainCard from '@/components/train/TrainCard';
 import { Train } from '@/types/railBooker';
+import { toast } from 'sonner';
+import { AlertTriangle } from 'lucide-react';
 
 const TrainListing = () => {
   const [searchParams] = useSearchParams();
@@ -15,11 +17,55 @@ const TrainListing = () => {
   const destination = searchParams.get('destination') || '';
   const date = searchParams.get('date') || '';
   const passengers = searchParams.get('passengers') || '1';
+  const [showSearchTip, setShowSearchTip] = useState(true);
   
   const { data: trains, isLoading, error } = useQuery({
     queryKey: ['trains', origin, destination, date],
     queryFn: () => getTrains({ origin, destination, date }),
   });
+
+  // Show search tip when no origin/destination is provided
+  useEffect(() => {
+    if ((!origin || !destination) && showSearchTip) {
+      toast((t) => (
+        <div className="flex items-start">
+          <AlertTriangle className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-medium mb-1">Search for Trains</h3>
+            <p className="text-sm text-gray-600">
+              Use the search form to find trains between stations. Enter origin, destination and travel date.
+            </p>
+            <button
+              className="text-sm text-railway-600 mt-2"
+              onClick={() => {
+                setShowSearchTip(false);
+                toast.dismiss(t);
+              }}
+            >
+              Don't show again
+            </button>
+          </div>
+        </div>
+      ), {
+        duration: 8000,
+        id: 'search-tip',
+      });
+    }
+  }, [origin, destination, showSearchTip]);
+
+  // Show title based on search params
+  const getPageTitle = () => {
+    if (origin && destination) {
+      return `Trains from ${origin} to ${destination}`;
+    }
+    if (origin) {
+      return `Trains from ${origin}`;
+    }
+    if (destination) {
+      return `Trains to ${destination}`;
+    }
+    return "All Available Trains";
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -33,8 +79,8 @@ const TrainListing = () => {
       
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Trains from {origin} to {destination}</h1>
-          <p className="text-gray-500">{date} · {passengers} Passenger(s)</p>
+          <h1 className="text-2xl font-bold mb-2">{getPageTitle()}</h1>
+          <p className="text-gray-500">{date ? date : 'All dates'} · {passengers} Passenger(s)</p>
         </div>
         
         {isLoading ? (
