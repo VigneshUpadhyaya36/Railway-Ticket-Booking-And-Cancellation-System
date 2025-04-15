@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getTrains } from '@/services/trainService';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
 
 const TrainListing = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const origin = searchParams.get('origin') || '';
   const destination = searchParams.get('destination') || '';
@@ -55,6 +56,11 @@ const TrainListing = () => {
     }
   }, [origin, destination, showSearchTip]);
 
+  // Handle search form submissions
+  const handleSearch = (searchData: { origin: string; destination: string; date: string }) => {
+    navigate(`/trains?origin=${searchData.origin}&destination=${searchData.destination}&date=${searchData.date}`);
+  };
+
   // Show title based on search params
   const getPageTitle = () => {
     if (origin && destination) {
@@ -83,7 +89,12 @@ const TrainListing = () => {
       
       <div className="bg-gray-50 py-6">
         <div className="container mx-auto px-4">
-          <SearchForm />
+          <SearchForm 
+            onSearch={handleSearch}
+            origin={origin} 
+            destination={destination} 
+            date={date} 
+          />
         </div>
       </div>
       

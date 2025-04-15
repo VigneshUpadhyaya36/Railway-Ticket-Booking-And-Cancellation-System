@@ -52,7 +52,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, origin = '', destinat
         // Combine and deduplicate stations
         const sources = sourceData.map(item => item.source);
         const destinations = destData.map(item => item.destination);
-        const allStations = [...new Set([...sources, ...destinations])].sort();
+        const allStations = [...new Set([...sources, ...destinations])].filter(station => station && station.trim() !== '').sort();
         
         setAvailableStations(allStations);
       } catch (error) {
@@ -130,7 +130,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, origin = '', destinat
                         <SelectItem key={station} value={station}>{station}</SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="" disabled>
+                      <SelectItem value="loading" disabled>
                         {isLoading ? 'Loading stations...' : 'No stations available'}
                       </SelectItem>
                     )}
@@ -160,7 +160,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, origin = '', destinat
                         <SelectItem key={station} value={station}>{station}</SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="" disabled>
+                      <SelectItem value="loading" disabled>
                         {isLoading ? 'Loading stations...' : 'No stations available'}
                       </SelectItem>
                     )}
