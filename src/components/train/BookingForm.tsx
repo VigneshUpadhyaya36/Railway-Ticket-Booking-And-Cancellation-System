@@ -118,6 +118,16 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
   };
   
   const calculateFare = () => {
+    // Check if the train has fares data
+    if (train.fares && train.fares.length > 0) {
+      // Try to find the fare for the selected class
+      const selectedFare = train.fares.find(fare => fare.class === fareClass);
+      if (selectedFare) {
+        return selectedFare.amount;
+      }
+    }
+    
+    // Fallback to calculate based on base price and multiplier
     return Math.round(train.price * getFareMultiplier());
   };
   

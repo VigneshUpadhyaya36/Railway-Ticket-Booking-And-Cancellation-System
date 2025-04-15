@@ -1,8 +1,8 @@
 
-// Define our own types for the train booking system instead of using Tables
+// This file contains the type definitions for the RailBooker application
 
-// Raw data types from Supabase
-export type TrainData = {
+// Train data from database
+export interface TrainData {
   train_id: string;
   train_name: string;
   train_number: string;
@@ -13,78 +13,68 @@ export type TrainData = {
   schedule: string;
   total_seats: number;
   available_seats: number;
-  created_at?: string;
   fares?: FareData[];
-};
+}
 
-// Fare type
-export type FareData = {
+// Fare data from database
+export interface FareData {
   fare_id: string;
   train_id: string;
   class: string;
   fare_amount: number;
-  created_at?: string;
-};
+}
 
-// Passenger type
-export type PassengerData = {
-  passenger_id: string;
-  name: string;
-  age: number;
-  gender: string;
-  contact: string;
-  created_at?: string;
-};
-
-// Booking type
-export type BookingData = {
+// Booking data from database
+export interface BookingData {
   pnr: string;
-  passenger_id: string;
   train_id: string;
-  seat_no: string;
-  class: string;
+  passenger_id: string;
   fare_id: string;
+  class: string;
+  seat_no: string;
   booking_date: string;
-  payment_status: string;
   booking_status: string;
-  created_at?: string;
-  passenger?: PassengerData;
-  train?: TrainData;
-  fare?: FareData;
-};
+  payment_status: string;
+  passenger?: {
+    passenger_id: string;
+    name: string;
+    age: number;
+    gender: string;
+    contact: string;
+  };
+  train?: {
+    train_id: string;
+    train_name: string;
+    train_number: string;
+    source: string;
+    destination: string;
+    departure_time: string;
+    arrival_time: string;
+    schedule: string;
+  };
+}
 
-// Payment type
-export type PaymentData = {
+// Payment data from database
+export interface PaymentData {
   payment_id: string;
   pnr: string;
   amount: number;
-  payment_date: string;
   payment_method: string;
+  payment_date: string;
   status: string;
-  created_at?: string;
-};
+}
 
-// Cancellation type
-export type CancellationData = {
+// Cancellation data from database
+export interface CancellationData {
   cancel_id: string;
   pnr: string;
   refund_amount: number;
   cancellation_date: string;
   status: string;
-  created_at?: string;
-};
+}
 
-// Admin type
-export type AdminData = {
-  admin_id: string;
-  username: string;
-  password: string;
-  total_revenue: number;
-  created_at?: string;
-};
-
-// Custom train type for UI rendering (matches existing TrainCard component)
-export type Train = {
+// Train interface for frontend
+export interface Train {
   id: string;
   name: string;
   number: string;
@@ -92,40 +82,49 @@ export type Train = {
   destination: string;
   departureTime: string;
   arrivalTime: string;
-  duration: string;
+  date: string;
   price: number;
   availableSeats: number;
-  date: string;
-};
+  totalSeats: number;
+  fares?: {
+    id: string;
+    class: string;
+    amount: number;
+  }[];
+}
 
-// Helper function to convert TrainData from Supabase to UI Train type
-export const mapTrainDataToTrain = (trainData: TrainData, fareClass?: string): Train => {
-  // Find the appropriate fare or use the first one
-  const fare = trainData.fares?.find(f => f.class === fareClass) || trainData.fares?.[0];
-  
-  // Calculate duration (simple string for now)
-  const deptTime = new Date(`2000-01-01T${trainData.departure_time}`);
-  const arrTime = new Date(`2000-01-01T${trainData.arrival_time}`);
-  let durationMs = arrTime.getTime() - deptTime.getTime();
-  // If arrival is earlier than departure, it means the train arrives the next day
-  if (durationMs < 0) {
-    durationMs += 24 * 60 * 60 * 1000; // Add 24 hours
-  }
-  const durationHours = Math.floor(durationMs / (60 * 60 * 1000));
-  const durationMinutes = Math.floor((durationMs % (60 * 60 * 1000)) / (60 * 1000));
-  const duration = `${durationHours}h ${durationMinutes}m`;
-
-  return {
+// Helper function to map database train data to frontend Train interface
+export const mapTrainDataToTrain = (trainData: TrainData): Train => {
+  const train: Train = {
     id: trainData.train_id,
     name: trainData.train_name,
     number: trainData.train_number,
     origin: trainData.source,
     destination: trainData.destination,
-    departureTime: trainData.departure_time.slice(0, 5),
-    arrivalTime: trainData.arrival_time.slice(0, 5),
-    duration,
-    price: fare?.fare_amount ? Number(fare.fare_amount) : 0,
+    departureTime: trainData.departure_time,
+    arrivalTime: trainData.arrival_time,
+    date: trainData.schedule,
+    price: 0, // Will be set from fares
     availableSeats: trainData.available_seats,
-    date: trainData.schedule ? new Date(trainData.schedule).toLocaleDateString() : '',
+    totalSeats: trainData.total_seats
   };
+  
+  // Add fares if available
+  if (trainData.fares && trainData.fares.length > 0) {
+    // Find AC First Class fare as base price
+    const acFirstFare = trainData.fares.find(fare => fare.class === 'AC First Class');
+    train.price = acFirstFare ? acFirstFare.fare_amount : 1500; // Default if not found
+    
+    // Map fares to frontend format
+    train.fares = trainData.fares.map(fare => ({
+      id: fare.fare_id,
+      class: fare.class,
+      amount: fare.fare_amount
+    }));
+  } else {
+    // Default price if no fares available
+    train.price = 1500;
+  }
+  
+  return train;
 };

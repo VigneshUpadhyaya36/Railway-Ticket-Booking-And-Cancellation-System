@@ -5,11 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from 'sonner';
-import { addTrain } from '@/services/trainService';
+import { addTrain, updateTrain } from '@/services/trainService';
 
 interface TrainFormProps {
   onSubmit: (trainData: any) => void;
-  initialData?: any;
+  initialData?: {
+    id?: string;
+    name: string;
+    number: string;
+    origin: string;
+    destination: string;
+    departureTime: string;
+    arrivalTime: string;
+    date: string;
+    price: string;
+    availableSeats: string;
+  };
 }
 
 const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
@@ -79,11 +90,19 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
     
     setIsLoading(true);
     try {
-      // Call the Supabase function to add the train
-      await addTrain(trainData);
+      if (initialData?.id) {
+        // Update existing train
+        await updateTrain({
+          ...trainData,
+          id: initialData.id
+        });
+      } else {
+        // Add new train
+        await addTrain(trainData);
+      }
       
       // Call the onSubmit function passed as prop
-      await onSubmit(trainData);
+      onSubmit(trainData);
       
       // Clear the form if it's a new train submission
       if (!initialData) {
@@ -99,8 +118,6 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
           availableSeats: '',
         });
       }
-      
-      toast.success(initialData ? "Train updated successfully" : "New train added successfully");
     } catch (error) {
       console.error("Form submission error:", error);
       toast.error("An error occurred while saving the train");
@@ -112,7 +129,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{initialData ? 'Edit Train' : 'Add New Train'}</CardTitle>
+        <CardTitle>{initialData?.id ? 'Edit Train' : 'Add New Train'}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -241,7 +258,7 @@ const TrainForm: React.FC<TrainFormProps> = ({ onSubmit, initialData }) => {
           >
             {isLoading 
               ? 'Processing...' 
-              : initialData ? 'Update Train' : 'Add Train'
+              : initialData?.id ? 'Update Train' : 'Add Train'
             }
           </Button>
         </form>
