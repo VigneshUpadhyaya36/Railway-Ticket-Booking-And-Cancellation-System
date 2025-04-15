@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface SearchFormProps {
-  onSearch: (search: { origin: string; destination: string; date: string }) => void;
+  onSearch?: (search: { origin: string; destination: string; date: string }) => void;
   origin?: string;
   destination?: string;
   date?: string;
@@ -89,11 +89,16 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, origin = '', destinat
       return;
     }
     
-    onSearch({
+    const searchParams = {
       origin: originSearch,
       destination: destinationSearch,
       date: format(dateSearch, 'yyyy-MM-dd')
-    });
+    };
+    
+    // Call onSearch if provided
+    if (onSearch) {
+      onSearch(searchParams);
+    }
     
     // Navigate to the listing page with search params
     navigate(`/trains?origin=${originSearch}&destination=${destinationSearch}&date=${format(dateSearch, 'yyyy-MM-dd')}`);

@@ -1,4 +1,3 @@
-
 // This file contains the type definitions for the RailBooker application
 
 // Train data from database
@@ -86,6 +85,7 @@ export interface Train {
   price: number;
   availableSeats: number;
   totalSeats: number;
+  duration?: string; // Add duration property (optional)
   fares?: {
     id: string;
     class: string;
@@ -95,6 +95,30 @@ export interface Train {
 
 // Helper function to map database train data to frontend Train interface
 export const mapTrainDataToTrain = (trainData: TrainData): Train => {
+  // Calculate duration based on departure and arrival times
+  const calculateDuration = (departureTime: string, arrivalTime: string): string => {
+    try {
+      const [depHours, depMinutes] = departureTime.split(':').map(Number);
+      const [arrHours, arrMinutes] = arrivalTime.split(':').map(Number);
+      
+      let hourDiff = arrHours - depHours;
+      let minuteDiff = arrMinutes - depMinutes;
+      
+      if (minuteDiff < 0) {
+        hourDiff--;
+        minuteDiff += 60;
+      }
+      
+      if (hourDiff < 0) {
+        hourDiff += 24; // Handle overnight journeys
+      }
+      
+      return `${hourDiff}h ${minuteDiff}m`;
+    } catch {
+      return "Unknown";
+    }
+  };
+
   const train: Train = {
     id: trainData.train_id,
     name: trainData.train_name,
@@ -106,7 +130,8 @@ export const mapTrainDataToTrain = (trainData: TrainData): Train => {
     date: trainData.schedule,
     price: 0, // Will be set from fares
     availableSeats: trainData.available_seats,
-    totalSeats: trainData.total_seats
+    totalSeats: trainData.total_seats,
+    duration: calculateDuration(trainData.departure_time, trainData.arrival_time)
   };
   
   // Add fares if available

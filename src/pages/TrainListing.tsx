@@ -69,6 +69,14 @@ const TrainListing = () => {
     return "All Available Trains";
   };
 
+  // Function to transform Train to match TrainCard requirements
+  const mapTrainToCardFormat = (train: Train) => {
+    return {
+      ...train,
+      duration: train.duration || "Unknown" // Provide fallback for duration
+    };
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -101,7 +109,7 @@ const TrainListing = () => {
         ) : (
           <div className="space-y-6">
             {trains?.map((train: Train) => (
-              <TrainCard key={train.id} train={train} />
+              <TrainCard key={train.id} train={mapTrainToCardFormat(train)} />
             ))}
           </div>
         )}

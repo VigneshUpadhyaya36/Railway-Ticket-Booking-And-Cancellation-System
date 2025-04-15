@@ -100,7 +100,7 @@ const BookingDetail = () => {
                   <p className="text-gray-500">{train.destination}</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">{train.duration} journey</p>
+              <p className="text-sm text-gray-500">{train.duration || "Unknown"} journey</p>
             </div>
             
             <div className="bg-gray-50 p-3 rounded-md">

@@ -177,16 +177,25 @@ export const createBooking = async (bookingData: {
     if (paymentError) throw paymentError;
     
     // Step 5: Update available seats in the train
-    const { error: updateSeatsError } = await supabase
+    const { data: trainData, error: getTrainError } = await supabase
       .from('train')
-      .update({ 
-        available_seats: supabase.rpc('decrement', { row_id: bookingData.trainId, value: passengerIds.length })
-      })
-      .eq('train_id', bookingData.trainId);
-    
-    if (updateSeatsError) {
-      console.error('Error updating seats:', updateSeatsError);
-      // Continue even if seat update fails
+      .select('available_seats')
+      .eq('train_id', bookingData.trainId)
+      .single();
+      
+    if (getTrainError) {
+      console.error('Error getting train data:', getTrainError);
+    } else {
+      const newAvailableSeats = Math.max(0, trainData.available_seats - passengerIds.length);
+      
+      const { error: updateSeatsError } = await supabase
+        .from('train')
+        .update({ available_seats: newAvailableSeats })
+        .eq('train_id', bookingData.trainId);
+      
+      if (updateSeatsError) {
+        console.error('Error updating seats:', updateSeatsError);
+      }
     }
     
     return firstPnr;
@@ -267,16 +276,26 @@ export const cancelBooking = async (pnr: string, amount: number): Promise<void> 
       if (cancellationError) throw cancellationError;
       
       // Step 3: Update available seats in the train
-      const { error: updateSeatsError } = await supabase
+      const { data: trainData, error: getTrainError } = await supabase
         .from('train')
-        .update({ 
-          available_seats: supabase.rpc('increment', { row_id: bookingData.train_id, value: 1 })
-        })
-        .eq('train_id', bookingData.train_id);
+        .select('available_seats, total_seats')
+        .eq('train_id', bookingData.train_id)
+        .single();
       
-      if (updateSeatsError) {
-        console.error('Error updating seats:', updateSeatsError);
-        // Continue even if seat update fails
+      if (!getTrainError && trainData) {
+        const newAvailableSeats = Math.min(
+          trainData.total_seats, 
+          trainData.available_seats + 1
+        );
+        
+        const { error: updateSeatsError } = await supabase
+          .from('train')
+          .update({ available_seats: newAvailableSeats })
+          .eq('train_id', bookingData.train_id);
+        
+        if (updateSeatsError) {
+          console.error('Error updating seats:', updateSeatsError);
+        }
       }
       
       toast.success('Booking cancelled successfully. Refund of ₹' + refundAmount.toFixed(2) + ' will be processed.');
@@ -428,7 +447,7 @@ export const updateTrain = async (trainData: {
     }
     
     // Update each fare with correct multiplier
-    const fareClasses = {
+    const fareClasses: Record<string, number> = {
       'AC First Class': 1.0,
       'AC 2 Tier': 0.8,
       'AC 3 Tier': 0.6,
