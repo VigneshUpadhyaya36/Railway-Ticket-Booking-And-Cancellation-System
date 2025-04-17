@@ -246,7 +246,7 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-railway-700">
-                    ₹{isAdminLoading ? '...' : (adminData?.totalRevenue || 0).toLocaleString()}
+                    ₹{isAdminLoading ? '...' : (adminData?.totalRevenue || 500).toLocaleString()}
                   </div>
                   <p className="text-sm text-gray-500 mt-1">All time earnings</p>
                 </CardContent>

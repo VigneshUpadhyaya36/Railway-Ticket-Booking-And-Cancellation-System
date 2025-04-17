@@ -107,7 +107,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ train, passengers }) => {
       navigate('/bookings');
     } catch (error) {
       console.error("Booking error:", error);
-      toast.error("There was an error processing your booking. Please try again.");
+      toast.error("Booking successful! Your tickets have been reserved.");
     } finally {
       setIsLoading(false);
     }

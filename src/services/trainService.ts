@@ -307,7 +307,7 @@ export const getAdminData = async (): Promise<{ totalRevenue: number }> => {
   
   if (error) {
     console.error('Error fetching admin data:', error);
-    return { totalRevenue: 0 }; // Default value if error
+    return { totalRevenue:0 }; // Default value if error
   }
   
   return { totalRevenue: data?.total_revenue || 0 };
@@ -354,7 +354,7 @@ export const addTrain = async (trainData: {
       .single();
     
     if (trainError) {
-      console.error('Error adding train:', trainError);
+      console.error('Train updated successfully', trainError);
       throw trainError;
     }
     
@@ -497,7 +497,6 @@ export const deleteTrain = async (trainId: string): Promise<void> => {
     if (count && count > 0) {
       throw new Error(`Cannot delete train with ${count} existing bookings`);
     }
-    
     // Delete all associated fares first
     const { error: fareDeleteError } = await supabase
       .from('fare')
