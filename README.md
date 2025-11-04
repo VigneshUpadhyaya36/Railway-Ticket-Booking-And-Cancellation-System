@@ -54,7 +54,7 @@ This is a database-driven railway reservation system built with PostgreSQL. It s
 - **payment**: Payment record
 - **cancellation**: Ticket cancellation & refund
 
-> See the full ER diagram [here](<img width="941" height="1253" alt="image" src="https://github.com/user-attachments/assets/8cc65f68-688c-4a6c-93f4-2c300d9a0e6c" />)
+> See the full ER diagram [<img width="941" height="1253" alt="image" src="https://github.com/user-attachments/assets/8cc65f68-688c-4a6c-93f4-2c300d9a0e6c" />](#)
 
 ---
 
